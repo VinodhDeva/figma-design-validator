@@ -1,0 +1,7 @@
+node_modules
+dist
+.ui-validation-cache
+ui-validation-reports
+.mcp.json
+.kiro/
+*.tgz

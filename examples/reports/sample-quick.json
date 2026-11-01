@@ -1,0 +1,25 @@
+{
+  "status": "FAIL",
+  "summary": {
+    "status": "FAIL",
+    "checked": 23,
+    "failed": 1,
+    "warnings": 0
+  },
+  "mode": "quick",
+  "designSource": "spec-file",
+  "viewports": [
+    "desktop"
+  ],
+  "findings": [
+    {
+      "component": "PrimaryButton",
+      "property": "fontSize",
+      "viewport": "desktop",
+      "expected": 16,
+      "actual": 14,
+      "status": "FAIL",
+      "severity": "medium"
+    }
+  ]
+}

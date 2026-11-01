@@ -1,0 +1,53 @@
+{
+  "status": "FAIL",
+  "summary": {
+    "status": "FAIL",
+    "checked": 46,
+    "failed": 4,
+    "warnings": 0
+  },
+  "mode": "deep",
+  "designSource": "spec-file",
+  "viewports": [
+    "desktop",
+    "mobile"
+  ],
+  "findings": [
+    {
+      "component": "Hint",
+      "property": "a11y:color-contrast",
+      "expected": "no violation",
+      "actual": "1 node(s): Elements must meet minimum color contrast ratio thresholds",
+      "status": "FAIL",
+      "severity": "high",
+      "viewport": "desktop"
+    },
+    {
+      "component": "Hint",
+      "property": "a11y:color-contrast",
+      "expected": "no violation",
+      "actual": "1 node(s): Elements must meet minimum color contrast ratio thresholds",
+      "status": "FAIL",
+      "severity": "high",
+      "viewport": "mobile"
+    },
+    {
+      "component": "PrimaryButton",
+      "property": "fontSize",
+      "viewport": "desktop",
+      "expected": 16,
+      "actual": 14,
+      "status": "FAIL",
+      "severity": "medium"
+    },
+    {
+      "component": "PrimaryButton",
+      "property": "fontSize",
+      "viewport": "mobile",
+      "expected": 16,
+      "actual": 14,
+      "status": "FAIL",
+      "severity": "medium"
+    }
+  ]
+}

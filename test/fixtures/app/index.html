@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fixture</title>
+<style>
+  body { margin: 0; font-family: Inter, Arial, sans-serif; }
+  .card { display: flex; flex-direction: column; gap: 12px; width: 320px; padding: 24px; margin: 16px;
+          background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-sizing: border-box; }
+  .title { font-size: 20px; font-weight: 600; line-height: 28px; color: #111827; margin: 0; }
+  .btn { width: 120px; height: 40px; padding: 8px 16px; border: 0; border-radius: 8px;
+         background: #2563eb; color: #ffffff; font-size: 14px; font-weight: 500; line-height: 20px; }
+  .low-contrast { color: #cccccc; background: #ffffff; font-size: 12px; }
+  @media (max-width: 480px) { .card { width: 100%; margin: 0; } }
+</style>
+</head>
+<body>
+  <div class="card" data-testid="card">
+    <h2 class="title" data-testid="title">Welcome</h2>
+    <p class="low-contrast" data-testid="hint">Faint hint text</p>
+    <button class="btn" data-testid="primary-btn">Continue</button>
+  </div>
+</body>
+</html>

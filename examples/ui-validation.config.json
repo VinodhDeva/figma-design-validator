@@ -1,0 +1,32 @@
+{
+  "baseUrl": "http://localhost:5173",
+  "viewports": [
+    { "name": "desktop", "width": 1440, "height": 900 },
+    { "name": "tablet", "width": 768, "height": 1024 },
+    { "name": "mobile", "width": 375, "height": 812 }
+  ],
+  "figma": { "fileKey": "YOUR_FIGMA_FILE_KEY", "frameNodeId": "1:1", "cacheTtlHours": 24 },
+  "designSpecPath": "design-spec.json",
+  "tolerances": { "size": 2, "spacing": 1, "fontSize": 0, "color": 4 },
+  "screenshot": { "threshold": 0.1, "maxDiffRatio": 0.01 },
+  "components": [
+    {
+      "name": "PrimaryButton",
+      "path": "/",
+      "selector": "[data-testid=primary-btn]",
+      "figmaNodeId": "12:34",
+      "expected": { "borderRadius": 8 },
+      "ignore": ["x", "y"]
+    },
+    {
+      "name": "Card",
+      "path": "/",
+      "selector": "[data-testid=card]",
+      "figmaNodeId": "12:40",
+      "reference": "refs/card.desktop.png",
+      "responsive": {
+        "mobile": { "figmaNodeId": "12:90", "expected": { "width": 375 }, "reference": "refs/card.mobile.png" }
+      }
+    }
+  ]
+}
