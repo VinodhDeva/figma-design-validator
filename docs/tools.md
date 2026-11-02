@@ -96,10 +96,29 @@ A finding has this shape:
 
 Sample output: [../examples/reports](../examples/reports).
 
+## draft_config
+
+Drafts a config for one page. Details and scoring: [configuration.md](configuration.md#drafting-a-config).
+
+| Input | Type | Notes |
+|---|---|---|
+| `baseUrl` | URL | Running app |
+| `path` | string | Page path (default `/`) |
+| `viewport` | `{width,height}` | Default 1440×900 |
+| `figmaFileKey` + `frameNodeId` | string | Figma frame for this page (needs `FIGMA_TOKEN`) |
+| `designSpecPath` | path | Saved Figma `/nodes` response, used offline |
+| `output` | path | Must end with `.draft.json` (default `ui-validation.config.draft.json`) |
+| `minScore` | 0–1 | Default 0.5 |
+
+```json
+{"output":".../ui.draft.json","source":"spec-file","added":[{"name":"PrimaryButton","path":"/","selector":"[data-testid=\"primary-btn\"]","figmaNodeId":"1:4","score":1,"by":"name"}],"unmatchedLayers":["Promo banner"],"unmatchedCount":1,"next":"Review each selector (check scores below 0.8), set tolerances/screenshot/ignore for this app, then rename to ui-validation.config.json"}
+```
+
 ## Suggested call patterns
 
 | Goal | Calls |
 |---|---|
+| First setup for a page | `draft_config`, then review the draft |
 | Fast check after a change | `validate_layout` (quick) |
 | Release check | `generate_report` with `mode: "deep"` |
 | Debug one component | `inspect_design` + `inspect_ui` with `properties` |

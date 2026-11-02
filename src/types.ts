@@ -82,6 +82,8 @@ export interface ComponentConfig {
   expected?: StyleProps;
   reference?: string;
   ignore?: PropName[];
+  tolerances?: Partial<Tolerances>;
+  screenshot?: Partial<ValidationConfig['screenshot']>;
   // Per-viewport overrides for responsive designs, keyed by viewport name.
   responsive?: Record<string, { figmaNodeId?: string; expected?: StyleProps; reference?: string }>;
 }

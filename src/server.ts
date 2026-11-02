@@ -8,9 +8,10 @@ import { DEFAULT_TOLERANCES, forViewport, loadConfig, pickComponents, propNames,
 import { FigmaAdapter } from './design/figma.ts';
 import { toJson, toMarkdown, writeReports } from './report/report.ts';
 import type { Finding, StyleProps, ValidationConfig, Viewport } from './types.ts';
+import { draftConfig } from './draft.ts';
 import { runValidation, screenshotComponent, summarize } from './validate.ts';
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';
 
 const INSTRUCTIONS = `Deterministic UI-vs-design validation. All comparisons run in this server; results are compact JSON.
 Prefer one call to validate_layout or generate_report (mode "quick" by default) over chaining inspect_* calls.
@@ -180,11 +181,9 @@ export function createServer() {
       const config = await getConfig(a.configPath);
       const vp = resolveViewport(config, a.viewport);
       const c = forViewport(pickComponents(config, [a.component])[0], vp.name);
-      const cfg = {
-        ...config,
-        screenshot: { threshold: a.threshold ?? config.screenshot.threshold, maxDiffRatio: a.maxDiffRatio ?? config.screenshot.maxDiffRatio },
-      };
-      const r = await screenshotComponent(cfg, new FigmaAdapter(config), c, vp, a.refresh);
+      // Explicit tool arguments win over the component's and the config's settings.
+      const shot = { ...c.screenshot, ...(a.threshold !== undefined && { threshold: a.threshold }), ...(a.maxDiffRatio !== undefined && { maxDiffRatio: a.maxDiffRatio }) };
+      const r = await screenshotComponent(config, new FigmaAdapter(config), { ...c, screenshot: shot }, vp, a.refresh);
       if (!r) return { status: 'WARNING', component: c.name, message: 'No reference image (set "reference" or figmaNodeId with FIGMA_TOKEN)' };
       return { component: c.name, viewport: vp.name, ...r };
     }),
@@ -231,6 +230,25 @@ export function createServer() {
       const files = await writeReports(input, outputDir, a.name);
       return a.format === 'markdown' ? `${toMarkdown(input)}\nFiles: ${files.html}, ${files.json}, ${files.markdown}` : { ...toJson(input), files };
     }),
+  );
+
+  server.registerTool(
+    'draft_config',
+    {
+      description: 'Draft a validation config for one page: matches Figma frame layers to DOM elements (visible text, data-testid/id/aria-label) and writes <name>.draft.json with selectors and node ids. Never overwrites a live config; tolerances, screenshot limits and ignore lists are left for the team to set.',
+      inputSchema: {
+        baseUrl: z.string().url().describe('Running app, e.g. http://localhost:5173'),
+        path: z.string().optional().describe('Page path (default /)'),
+        viewport: viewportArg,
+        figmaFileKey: z.string().optional(),
+        frameNodeId: z.string().optional().describe('Figma frame for this page'),
+        designSpecPath: z.string().optional().describe('Saved Figma /nodes response to use offline'),
+        output: z.string().optional().describe('Draft file (must end with .draft.json). Re-running appends new components'),
+        minScore: z.number().min(0).max(1).optional().describe('Minimum match score (default 0.5)'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    safely(async (a) => draftConfig({ ...a, viewport: a.viewport ? resolveViewport(undefined, a.viewport) : undefined })),
   );
 
   return server;

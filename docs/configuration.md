@@ -31,8 +31,39 @@ Unknown keys inside `components`, `expected` and `responsive` are rejected, so t
 | `figmaNodeId` | Figma node id, e.g. `12:34` |
 | `expected` | Inline expected props. These override every other source |
 | `reference` | Reference PNG for screenshot diffs. Without it, the Figma export of `figmaNodeId` is used |
-| `ignore` | Props to skip, e.g. `["x", "y"]` |
+| `ignore` | Props to skip because the team built them differently on purpose, e.g. `["x", "y"]` |
+| `tolerances` | Per-component tolerance overrides, same keys as the top-level `tolerances` |
+| `screenshot` | Per-component `{threshold?, maxDiffRatio?}` overrides |
 | `responsive` | `{ "<viewport name>": { figmaNodeId?, expected?, reference? } }` overrides |
+
+## Team decisions
+
+Some settings depend on the app, the browser and the team, so the server never infers them:
+
+| Decision | Where | Notes |
+|---|---|---|
+| Components to check | `components[]` | Start from `draft_config`, then review the selectors |
+| Acceptable rendering difference | `screenshot` (global) and `components[].screenshot` | Raising `maxDiffRatio` from 0.01 to 0.03 for one component is a choice about this app, not a bug fix |
+| Size and spacing slack | `tolerances` (global) and `components[].tolerances` | Unknown keys are rejected |
+| Deliberate differences from Figma | `components[].ignore` | Keep the list short and specific |
+
+Precedence: tool arguments (`compare_screenshots`' `threshold`/`maxDiffRatio`) > component values > global values > defaults.
+
+## Drafting a config
+
+`draft_config` writes a draft for one page per call. It does not touch a live config: the output name must end with `.draft.json`. Running it again for another page appends the new components to the same draft.
+
+1. It lists the page's visible, nameable elements (`data-testid`, `id`, `aria-label`, `role`, headings, controls, landmarks) with the shortest unique CSS selector for each.
+2. It collects the Figma frame's FRAME, COMPONENT, INSTANCE and TEXT layers. It does not descend into instances.
+3. It scores each pair:
+   - identical visible text: 0.75–0.95, depending on whether the layer and the element are both text or both controls;
+   - token overlap between the layer name and the element's `data-testid`/`id`/`aria-label` (Jaccard, 0–1). `PrimaryButton`, `primary-btn` and `Primary / Button` all become `primary button`.
+4. It assigns pairs one-to-one, highest score first, keeping those at or above `minScore` (0.5).
+5. It returns the matches with scores, plus Figma layers it could not match.
+
+Without a Figma frame (no token and no saved `/nodes` response), it drafts components from elements with a `data-testid`, an `aria-label`, or the page's `h1`. You then add `figmaNodeId` or `expected` values.
+
+The draft leaves `tolerances` and `screenshot` empty, so they fall back to the defaults until the team sets them.
 
 ## Properties
 

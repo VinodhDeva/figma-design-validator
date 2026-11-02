@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { forViewport, parseConfig, pickViewports } from '../../src/config.ts';
+import { forViewport, parseConfig, pickViewports, screenshotFor, tolerancesFor } from '../../src/config.ts';
 
 const raw = {
   baseUrl: 'http://localhost:5173',
@@ -26,4 +26,17 @@ test('quick mode uses first viewport; responsive overrides apply', () => {
 
 test('rejects unknown style properties', () => {
   assert.throws(() => parseConfig({ ...raw, components: [{ name: 'x', selector: 'x', expected: { widht: 1 } }] }));
+});
+
+test('component tolerances and screenshot settings override global ones', () => {
+  const c = parseConfig({
+    ...raw,
+    screenshot: { maxDiffRatio: 0.01 },
+    components: [{ name: 'Chart', selector: '.chart', tolerances: { size: 6 }, screenshot: { maxDiffRatio: 0.03 } }],
+  });
+  const comp = c.components[0];
+  assert.equal(tolerancesFor(c, comp).size, 6);
+  assert.equal(tolerancesFor(c, comp).spacing, 1);
+  assert.deepEqual(screenshotFor(c, comp), { threshold: 0.1, maxDiffRatio: 0.03 });
+  assert.throws(() => parseConfig({ ...raw, components: [{ name: 'x', selector: 'x', tolerances: { sise: 1 } }] }));
 });

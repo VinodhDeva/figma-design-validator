@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — 2026-11-02
+
+### Added
+
+- `draft_config` tool. It drafts a config for one page by matching Figma frame layers to DOM elements (identical visible text; layer name vs `data-testid`/`id`/`aria-label`). It writes `*.draft.json` with unique selectors, node ids and a score per match. It never overwrites a live config.
+- Per-component `tolerances` and `screenshot` (`threshold`, `maxDiffRatio`) overrides. Precedence: tool arguments > component > global > defaults.
+- Docs: a "Team decisions" section covering which components to check, screenshot limits, tolerances and `ignore`.
+
 ## 0.2.0 — 2026-11-02
 
 ### Fixed

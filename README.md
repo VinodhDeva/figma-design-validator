@@ -16,6 +16,8 @@ src/
   server.ts             5 tool definitions + zod input schemas
   config.ts             JSON config schema, defaults, responsive overrides
   validate.ts           pipeline: design -> browser -> rules (+ screenshots, axe)
+  draft.ts              draft_config: write a reviewable draft config
+  design/match.ts       Figma layer -> DOM element matching
   cache.ts              file cache (Figma, TTL) + in-memory memo (inspections, 30 s)
   design/figma.ts       Figma REST adapter, node -> props extraction, fallbacks
   browser/inspector.ts  Playwright: computed CSS for requested selectors, axe-core, captures
@@ -82,6 +84,16 @@ Expected values are resolved in this order; inline `expected` always wins.
 
 If Figma is down, the token is missing, or no Figma MCP is available, the server does not fail. It falls back to the next source and adds a `warnings` entry.
 
+### Team decisions
+
+Three things only your team can decide. The server makes them easy to set but never guesses them.
+
+1. **Which components to check.** Run `draft_config` to get a first draft. It matches the page's Figma frame to DOM elements by visible text and by layer name vs `data-testid`/`id`/`aria-label`. It writes `ui-validation.config.draft.json` with selectors and node ids, plus a score per match. Review the selectors, especially scores below 0.8, then rename the file to `ui-validation.config.json`.
+2. **Screenshot limits.** Set `screenshot.threshold` and `screenshot.maxDiffRatio` globally, and override them per component where fonts, charts or images render differently. Example: `{ "name": "Chart", ..., "screenshot": { "maxDiffRatio": 0.03 } }`.
+3. **Tolerances and intentional differences.** Set `tolerances` globally or per component. Use `ignore` for props the team deliberately built differently from Figma.
+
+Precedence: tool arguments > component values > global values > defaults.
+
 Full reference: [docs/configuration.md](docs/configuration.md). Full example: [examples/ui-validation.config.json](examples/ui-validation.config.json).
 
 ## Tools
@@ -92,6 +104,7 @@ Full reference: [docs/configuration.md](docs/configuration.md). Full example: [e
 | `inspect_ui` | Box and computed CSS for the requested selectors only. Optional axe-core scan | config `components`, **or** ad hoc `url` + `selectors`; `viewport`, `properties?`, `accessibility?` |
 | `validate_layout` | Design vs live page in one call. Returns mismatches only. On issues, also writes `report.html` and returns its path | `mode`, `components?`, `viewports?`; **or** direct `expected` + `actual` (no browser) |
 | `compare_screenshots` | pixelmatch diff. Returns ratio + diff bounding box. The diff PNG is written to disk, not returned. Transparent references are flattened onto the page background | two PNG paths, **or** config `component` (live capture vs `reference` or Figma export); `threshold`, `maxDiffRatio`, `viewport` |
+| `draft_config` | Drafts a config for one page: Figma layers matched to DOM selectors. Writes `*.draft.json` only, never a live config | `baseUrl`, `path?`, `frameNodeId?`, `figmaFileKey?`, `designSpecPath?`, `output?`, `minScore?` |
 | `generate_report` | Runs validation (or formats `findings` you pass). Writes `report.html`, `report.json`, `report.md` | `mode`, `format: json\|markdown`, `name?` |
 
 `configPath` defaults to `$UI_VALIDATION_CONFIG`, then `./ui-validation.config.json`.
@@ -174,10 +187,11 @@ Or use the CLI:
 kiro-cli mcp add --name ui-validation --scope workspace --command node --args /ABSOLUTE/PATH/TO/figma-design-validator/dist/index.js
 ```
 
-In KIRO IDE, open the MCP Servers panel and confirm that `ui-validation` lists 5 tools.
+In KIRO IDE, open the MCP Servers panel and confirm that `ui-validation` lists 6 tools.
 
 ## Usage prompts
 
+- "Run draft_config for http://localhost:5173 page /checkout with Figma frame 12:1."
 - "Run validate_layout quick for PrimaryButton."
 - "Run generate_report in deep mode, markdown format."
 - "compare_screenshots for Card on the mobile viewport, threshold 0.05."
@@ -207,7 +221,7 @@ Unit tests cover the color, layout rules, Figma extraction and fallback, screens
 npm test
 ```
 
-Integration tests build the server, spawn `dist/index.js` over real STDIO with the MCP SDK client, and call all 5 tools against a fixture page:
+Integration tests build the server, spawn `dist/index.js` over real STDIO with the MCP SDK client, and call all 6 tools against a fixture page:
 
 ```bash
 npm run test:integration

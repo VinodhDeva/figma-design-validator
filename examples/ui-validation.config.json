@@ -16,7 +16,8 @@
       "selector": "[data-testid=primary-btn]",
       "figmaNodeId": "12:34",
       "expected": { "borderRadius": 8 },
-      "ignore": ["x", "y"]
+      "ignore": ["x", "y"],
+      "tolerances": { "size": 3 }
     },
     {
       "name": "Card",
@@ -24,6 +25,7 @@
       "selector": "[data-testid=card]",
       "figmaNodeId": "12:40",
       "reference": "refs/card.desktop.png",
+      "screenshot": { "maxDiffRatio": 0.03 },
       "responsive": {
         "mobile": { "figmaNodeId": "12:90", "expected": { "width": 375 }, "reference": "refs/card.mobile.png" }
       }

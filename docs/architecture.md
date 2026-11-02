@@ -11,7 +11,7 @@
 
 ```
                     ┌──────────────────────┐
- AI client ── MCP ──▶  server.ts (5 tools) │
+ AI client ── MCP ──▶  server.ts (6 tools) │
  (STDIO)            └──────────┬───────────┘
                                │
                         validate.ts pipeline
@@ -43,6 +43,8 @@ For each viewport, `runValidation` in `src/validate.ts` does the following:
 | `src/server.ts` | Tool registration, zod input schemas, error wrapping | all engines |
 | `src/config.ts` | Config schema, defaults, `forViewport`, component/viewport selection | zod |
 | `src/validate.ts` | Pipeline used by `validate_layout` and `generate_report` | engines |
+| `src/draft.ts` | `draft_config`: candidates + layers -> matches -> draft file | inspector, figma, match |
+| `src/design/match.ts` | Layer collection, name tokens, scoring, one-to-one assignment | — |
 | `src/cache.ts` | `FileCache` (disk, TTL) and `MemoryCache` (in-process, TTL) | node:fs |
 | `src/design/figma.ts` | Figma REST calls, node-to-props extraction, fallbacks, image export | cache |
 | `src/browser/inspector.ts` | Shared headless Chromium, `inspectUI`, `runAxe`, `captureScreenshot` | playwright, axe-core |

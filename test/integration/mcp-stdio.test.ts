@@ -66,9 +66,9 @@ after(async () => {
   http?.close();
 });
 
-test('registers exactly the 5 tools with schemas', async () => {
+test('registers exactly the 6 tools with schemas', async () => {
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map((t) => t.name).sort(), ['compare_screenshots', 'generate_report', 'inspect_design', 'inspect_ui', 'validate_layout']);
+  assert.deepEqual(tools.map((t) => t.name).sort(), ['compare_screenshots', 'draft_config', 'generate_report', 'inspect_design', 'inspect_ui', 'validate_layout']);
   for (const t of tools) assert.equal(t.inputSchema.type, 'object');
 });
 
@@ -144,6 +144,45 @@ test('generate_report writes HTML + JSON + Markdown', async () => {
   const json = JSON.parse(await readFile(join(dir, 'ui-validation-reports/report.json'), 'utf8'));
   assert.equal(json.status, 'FAIL');
   assert.ok((await stat(join(dir, 'ui-validation-reports/report.md'))).size > 0);
+});
+
+test('component tolerance override turns the seeded fontSize mismatch into a pass', async () => {
+  const cfg = JSON.parse(await readFile(configPath, 'utf8'));
+  cfg.components = cfg.components.filter((c: { name: string }) => c.name === 'PrimaryButton');
+  cfg.components[0].tolerances = { fontSize: 2 };
+  const p = join(dir, 'override.config.json');
+  await writeFile(p, JSON.stringify(cfg));
+  const r = await call('validate_layout', { configPath: p });
+  assert.equal(r.status, 'PASS', JSON.stringify(r.findings));
+});
+
+test('draft_config matches Figma layers to DOM selectors and writes a valid draft', async () => {
+  const cfg = JSON.parse(await readFile(configPath, 'utf8'));
+  await copyFile(join(root, 'test/fixtures/figma-frame.json'), join(dir, 'frame.json'));
+  const r = await call('draft_config', { baseUrl: cfg.baseUrl, frameNodeId: '0:1', designSpecPath: join(dir, 'frame.json'), output: join(dir, 'ui.draft.json') });
+  assert.equal(r.source, 'spec-file');
+  const got = Object.fromEntries(r.added.map((c: { name: string; selector: string; figmaNodeId: string }) => [c.name, [c.selector, c.figmaNodeId]]));
+  assert.deepEqual(got, {
+    Card: ['[data-testid="card"]', '1:1'],
+    Title: ['[data-testid="title"]', '1:2'],
+    Hint: ['[data-testid="hint"]', '1:3'],
+    PrimaryButton: ['[data-testid="primary-btn"]', '1:4'],
+  });
+  assert.deepEqual(r.unmatchedLayers, ['Promo banner']);
+  const draft = JSON.parse(await readFile(join(dir, 'ui.draft.json'), 'utf8'));
+  assert.deepEqual(draft.tolerances, {});
+  // The draft is directly usable: the server validates it like any config.
+  const v = await call('validate_layout', { configPath: join(dir, 'ui.draft.json') });
+  assert.ok(['PASS', 'WARNING', 'FAIL'].includes(v.status));
+  // Re-running appends nothing new.
+  const again = await call('draft_config', { baseUrl: cfg.baseUrl, frameNodeId: '0:1', designSpecPath: join(dir, 'frame.json'), output: join(dir, 'ui.draft.json') });
+  assert.equal(again.added.length, 0);
+});
+
+test('draft_config refuses to write a live config', async () => {
+  const r = (await client.callTool({ name: 'draft_config', arguments: { baseUrl: 'http://127.0.0.1:1', output: configPath } })) as { isError?: boolean; content: { text: string }[] };
+  assert.equal(r.isError, true);
+  assert.match(r.content[0].text, /\.draft\.json/);
 });
 
 test('tool errors are returned, not thrown', async () => {

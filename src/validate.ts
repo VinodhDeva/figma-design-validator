@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { captureScreenshot, inspectUI } from './browser/inspector.ts';
 import { compareProps } from './compare/layout.ts';
 import { compareImages, type ScreenshotDiff } from './compare/screenshot.ts';
-import { forViewport, pickComponents, pickViewports } from './config.ts';
+import { forViewport, pickComponents, pickViewports, screenshotFor, tolerancesFor } from './config.ts';
 import { FigmaAdapter, type DesignSource } from './design/figma.ts';
 import type { ComponentConfig, Finding, Mode, Severity, Summary, ValidationConfig, Viewport } from './types.ts';
 
@@ -68,7 +68,7 @@ export async function runValidation(
           findings.push({ component: comp.name, property: 'element', expected: comp.selector, actual: null, status: 'FAIL', severity: 'high', viewport: vp.name });
           continue;
         }
-        const r = compareProps(comp.name, specs.get(comp.name)?.props ?? {}, comp.props, config.tolerances, deep ? undefined : config.quickProperties, vp.name);
+        const r = compareProps(comp.name, specs.get(comp.name)?.props ?? {}, comp.props, tolerancesFor(config, group.find((g) => g.name === comp.name)!), deep ? undefined : config.quickProperties, vp.name);
         checked += r.checked;
         findings.push(...r.findings);
       }
@@ -95,7 +95,7 @@ export async function runValidation(
             findings.push({
               component: c.name,
               property: 'screenshot',
-              expected: `diffRatio<=${config.screenshot.maxDiffRatio}`,
+              expected: `diffRatio<=${screenshotFor(config, c).maxDiffRatio}`,
               actual: `diffRatio=${s.diffRatio}${s.sizeMismatch ? ` size ${s.sizeMismatch.actual.join('x')} vs ${s.sizeMismatch.reference.join('x')}` : ''}`,
               status: s.status,
               severity: s.status === 'FAIL' ? (s.diffRatio > 0.1 ? 'high' : 'medium') : 'low',
@@ -132,5 +132,5 @@ export async function screenshotComponent(
   if (!reference) return undefined;
   const stem = join(config.outputDir, 'screenshots', `${safe(c.name)}.${safe(vp.name)}`);
   const { path: actual, background } = await captureScreenshot({ url: urlFor(config, c), viewport: vp, selector: c.selector, outPath: `${stem}.actual.png` });
-  return { ...(await compareImages({ reference, actual, background, ...config.screenshot, diffOutput: `${stem}.diff.png` })), actualImage: actual };
+  return { ...(await compareImages({ reference, actual, background, ...screenshotFor(config, c), diffOutput: `${stem}.diff.png` })), actualImage: actual };
 }

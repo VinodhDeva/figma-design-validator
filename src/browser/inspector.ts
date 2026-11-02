@@ -232,3 +232,64 @@ export async function captureScreenshot(opts: {
     opts.waitFor,
   );
 }
+
+export interface DomCandidate {
+  selector: string;
+  tag: string;
+  testId?: string;
+  id?: string;
+  label?: string;
+  text?: string;
+}
+
+// Runs in the browser: visible, nameable elements with the shortest unique CSS selector for each.
+function candidates(limit: number): DomCandidate[] {
+  const unique = (sel: string, el: Element) => {
+    try {
+      const m = document.querySelectorAll(sel);
+      return m.length === 1 && m[0] === el;
+    } catch {
+      return false;
+    }
+  };
+  const q = (v: string) => JSON.stringify(v);
+  const selectorFor = (el: Element): string => {
+    const tag = el.tagName.toLowerCase();
+    const tries = [
+      el.getAttribute('data-testid') && `[data-testid=${q(el.getAttribute('data-testid')!)}]`,
+      el.id && `#${CSS.escape(el.id)}`,
+      el.getAttribute('aria-label') && `${tag}[aria-label=${q(el.getAttribute('aria-label')!)}]`,
+      el.getAttribute('name') && `${tag}[name=${q(el.getAttribute('name')!)}]`,
+      ['main', 'nav', 'header', 'footer', 'h1'].includes(tag) && tag,
+    ].filter(Boolean) as string[];
+    for (const t of tries) if (unique(t, el)) return t;
+    // Fallback: nth-of-type chain up to the nearest uniquely selectable ancestor.
+    const parent = el.parentElement;
+    if (!parent || parent === document.documentElement) return tag;
+    const same = [...parent.children].filter((c) => c.tagName === el.tagName);
+    const part = same.length > 1 ? `${tag}:nth-of-type(${same.indexOf(el) + 1})` : tag;
+    const sel = `${parent === document.body ? 'body' : selectorFor(parent)} > ${part}`;
+    return sel;
+  };
+  const pick =
+    '[data-testid],[id],[aria-label],[role],h1,h2,h3,h4,h5,h6,button,a[href],input,select,textarea,label,img[alt],nav,header,footer,main,section,form,dialog,li';
+  const out: DomCandidate[] = [];
+  for (const el of document.querySelectorAll(pick)) {
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0 || getComputedStyle(el).visibility === 'hidden') continue;
+    const text = ((el as HTMLElement).innerText || (el as HTMLInputElement).placeholder || el.getAttribute('alt') || '').trim().replace(/\s+/g, ' ');
+    const c: DomCandidate = { selector: selectorFor(el), tag: el.tagName.toLowerCase() };
+    if (el.getAttribute('data-testid')) c.testId = el.getAttribute('data-testid')!;
+    if (el.id) c.id = el.id;
+    if (el.getAttribute('aria-label')) c.label = el.getAttribute('aria-label')!;
+    if (text) c.text = text.slice(0, 80);
+    out.push(c);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/** Nameable, visible elements of a page with unique selectors; input for drafting a config. */
+export async function listCandidates(url: string, viewport: Viewport, limit = 400): Promise<DomCandidate[]> {
+  return withPage(url, viewport, (page) => page.evaluate(candidates, limit));
+}

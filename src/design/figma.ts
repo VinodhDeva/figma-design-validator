@@ -12,6 +12,7 @@ export interface FigmaNode {
   name: string;
   type: string;
   visible?: boolean;
+  characters?: string;
   absoluteBoundingBox?: { x: number; y: number; width: number; height: number };
   paddingTop?: number;
   paddingRight?: number;
@@ -55,7 +56,7 @@ const solid = (paints?: Paint[]) => {
   return toHex([r * 255, g * 255, b * 255, a * (p.opacity ?? 1)]);
 };
 
-function firstText(n: FigmaNode): FigmaNode | undefined {
+export function firstText(n: FigmaNode): FigmaNode | undefined {
   if (n.type === 'TEXT') return n;
   for (const c of n.children ?? []) {
     if (c.visible === false) continue;
@@ -159,16 +160,16 @@ export class FigmaAdapter {
   }
 
   /** Fetch node subtrees, served from file cache when fresh. */
-  private async nodes(ids: string[], refresh: boolean): Promise<{ data: NodesResponse; cached: boolean }> {
+  private async nodes(ids: string[], refresh: boolean, depth = 4): Promise<{ data: NodesResponse; cached: boolean }> {
     const fileKey = this.config.figma!.fileKey;
-    const key = hashKey('nodes', fileKey, [...ids].sort());
+    const key = hashKey('nodes', fileKey, [...ids].sort(), depth === 4 ? undefined : depth);
     if (!refresh) {
       const hit = await this.cache.getJson<NodesResponse>(key, this.ttl());
       if (hit) return { data: hit, cached: true };
     }
     if (!this.token) throw new Error('FIGMA_TOKEN not set');
     const data = await figmaGet<NodesResponse>(
-      `/files/${encodeURIComponent(fileKey)}/nodes?ids=${encodeURIComponent(ids.join(','))}&depth=4`,
+      `/files/${encodeURIComponent(fileKey)}/nodes?ids=${encodeURIComponent(ids.join(','))}&depth=${depth}`,
       this.token,
     );
     await this.cache.put(key, data);
@@ -184,6 +185,25 @@ export class FigmaAdapter {
    * Resolve expected props per component. Order: Figma (cache/API) -> local spec file -> inline `expected`.
    * Inline `expected` always overrides. Never throws for an unavailable source; reports a warning instead.
    */
+  /** Subtree of one frame (for drafting a config): Figma API/cache first, then a saved /nodes response in designSpecPath. */
+  async tree(nodeId: string, refresh = false): Promise<{ node?: FigmaNode; source: DesignSource; warning?: string }> {
+    let warning: string | undefined;
+    if (this.config.figma) {
+      try {
+        const { data, cached } = await this.nodes([nodeId], refresh, 8);
+        const node = data.nodes[nodeId]?.document;
+        if (node) return { node, source: cached ? 'figma-cache' : 'figma' };
+        warning = `Figma node ${nodeId} not found`;
+      } catch (e) {
+        warning = `Figma unavailable (${(e as Error).message})`;
+      }
+    }
+    const spec = await this.specFile().catch(() => undefined);
+    const node = spec && 'nodes' in spec ? (spec as unknown as NodesResponse).nodes[nodeId]?.document : undefined;
+    if (node) return { node, source: 'spec-file', warning };
+    return { source: 'none', warning: warning ?? 'No Figma fileKey/FIGMA_TOKEN and no saved /nodes response in designSpecPath' };
+  }
+
   async inspect(components: ComponentConfig[], refresh = false): Promise<DesignResult> {
     const frameNodeId = this.config.figma?.frameNodeId;
     const warnings: string[] = [];

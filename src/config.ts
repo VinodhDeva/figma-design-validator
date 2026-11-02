@@ -20,6 +20,15 @@ const styleProps = z
 export const stylePropsSchema = styleProps;
 export const propNames = Object.keys(styleProps.shape) as (keyof z.infer<typeof styleProps>)[];
 
+const tolerancesSchema = z
+  .object({
+    size: num, position: num, spacing: num, radius: num, fontSize: num,
+    lineHeight: num, letterSpacing: num, fontWeight: num, color: num, opacity: num,
+  })
+  .partial()
+  .strict();
+const screenshotSchema = z.object({ threshold: z.number().min(0).max(1), maxDiffRatio: z.number().min(0).max(1) }).partial().strict();
+
 const configSchema = z.object({
   baseUrl: z.string().url(),
   viewports: z
@@ -28,17 +37,8 @@ const configSchema = z.object({
     .default([{ name: 'desktop', width: 1440, height: 900 }]),
   figma: z.object({ fileKey: z.string().min(1), frameNodeId: z.string().optional(), cacheTtlHours: num.optional() }).optional(),
   designSpecPath: z.string().optional(),
-  tolerances: z
-    .object({
-      size: num, position: num, spacing: num, radius: num, fontSize: num,
-      lineHeight: num, letterSpacing: num, fontWeight: num, color: num, opacity: num,
-    })
-    .partial()
-    .default({}),
-  screenshot: z
-    .object({ threshold: z.number().min(0).max(1), maxDiffRatio: z.number().min(0).max(1) })
-    .partial()
-    .default({}),
+  tolerances: tolerancesSchema.default({}),
+  screenshot: screenshotSchema.default({}),
   quickProperties: z.array(z.enum(propNames as [string, ...string[]])).optional(),
   cacheDir: z.string().default('.ui-validation-cache'),
   outputDir: z.string().default('ui-validation-reports'),
@@ -53,6 +53,9 @@ const configSchema = z.object({
           expected: styleProps.optional(),
           reference: z.string().optional(),
           ignore: z.array(z.enum(propNames as [string, ...string[]])).optional(),
+          // Per-component overrides of the global values (e.g. a chart that renders fonts differently).
+          tolerances: tolerancesSchema.optional(),
+          screenshot: screenshotSchema.optional(),
           responsive: z
             .record(
               z.string(),
@@ -131,3 +134,7 @@ export function forViewport(c: ComponentConfig, viewport: string): ComponentConf
     expected: { ...c.expected, ...r.expected },
   };
 }
+
+/** Effective tolerances and screenshot settings for a component: component overrides win over global values. */
+export const tolerancesFor = (config: ValidationConfig, c: ComponentConfig) => ({ ...config.tolerances, ...c.tolerances });
+export const screenshotFor = (config: ValidationConfig, c: ComponentConfig) => ({ ...config.screenshot, ...c.screenshot });
