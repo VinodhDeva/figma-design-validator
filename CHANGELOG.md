@@ -2,9 +2,11 @@
 
 ## 0.4.0 — 2026-11-02
 
+First release on npm: https://www.npmjs.com/package/figma-design-validator
+
 ### Changed
 
-- Package renamed to `figma-design-validator`, matching the repository. Clients run it with `npx -y figma-design-validator`, or `npx -y github:VinodhDeva/figma-design-validator` before the npm release. No clone or build is needed.
+- Package renamed to `figma-design-validator`, matching the repository. Clients run it with `npx -y figma-design-validator`, or `npx -y github:VinodhDeva/figma-design-validator` for the latest `main`. No clone or build is needed.
 - The browser is found automatically: Playwright's Chromium, then Google Chrome, then Microsoft Edge. If none exists, Playwright's Chromium is installed once on first use.
 - The MCP server name reported to clients is now `figma-design-validator`.
 

@@ -1,8 +1,8 @@
 # figma-design-validator
 
-An MCP server that validates a React UI against its Figma design. Run it with `npx -y figma-design-validator`; no clone needed.
+[![npm](https://img.shields.io/npm/v/figma-design-validator)](https://www.npmjs.com/package/figma-design-validator)
 
-A small MCP server that checks a running React app against its Figma design. It reports layout, typography, color, screenshot and accessibility mismatches.
+A small MCP server that checks a running React app against its Figma design. Run it with `npx -y figma-design-validator`; no clone needed. It reports layout, typography, color, screenshot and accessibility mismatches.
 
 All comparisons run in TypeScript with fixed rules. The server never calls an LLM and has no AI API dependency. It returns compact JSON with **mismatches only**, so the AI client spends few tokens. It speaks standard MCP over STDIO, so it works with Claude Code, KIRO CLI, KIRO IDE and any other MCP client.
 
@@ -43,8 +43,8 @@ Nothing to clone or build. MCP clients start the server with `npx`, which downlo
 
 | Source | `args` for `npx` | Status |
 |---|---|---|
-| npm | `["-y", "figma-design-validator"]` | After the package is published to npm |
-| GitHub | `["-y", "github:VinodhDeva/figma-design-validator"]` | Works now. The first start compiles TypeScript, so it is slower |
+| npm | `["-y", "figma-design-validator"]` | Recommended. Latest release on [npm](https://www.npmjs.com/package/figma-design-validator) |
+| GitHub | `["-y", "github:VinodhDeva/figma-design-validator"]` | Latest `main`, including unreleased changes. The first start compiles TypeScript, so it is slower |
 
 The server runs on your machine, because Playwright must reach your `localhost` app.
 
@@ -158,7 +158,7 @@ Option A, project-scoped `.mcp.json` in your app root (see [examples/clients/cla
 }
 ```
 
-Before the npm release, use `"args": ["-y", "github:VinodhDeva/figma-design-validator"]`.
+To run the latest unreleased `main` instead, use `"args": ["-y", "github:VinodhDeva/figma-design-validator"]`.
 
 Option B, the CLI:
 
@@ -252,13 +252,40 @@ npm run test:integration
 
 `npm publish` builds `dist/` through `prepare`. Only `dist`, `docs`, `examples`, `README.md`, `LICENSE` and `CHANGELOG.md` are published.
 
-```bash
-npm login
-```
+To release a new version:
 
-```bash
-npm publish
-```
+1. Bump `version` in `package.json` and `VERSION` in `src/server.ts`, and add a `CHANGELOG.md` entry.
+2. Run the tests:
+   ```bash
+   npm run test:all
+   ```
+3. Check what will be published:
+   ```bash
+   npm publish --dry-run
+   ```
+4. Commit and push to `main`.
+5. Log in, in an interactive terminal:
+   ```bash
+   npm login
+   ```
+6. Publish, in an interactive terminal:
+   ```bash
+   npm publish --access public
+   ```
+
+Notes:
+
+- Run `npm login` and `npm publish` in a real terminal. Both stop at "Press ENTER to open in the browser", which a non-interactive shell (such as an editor's command field) cannot answer.
+- The account uses 2FA. `npm publish` first stages the release, then waits for approval at the `https://www.npmjs.com/auth/cli/...` link it prints. Until you approve, the registry shows only a `0.0.0-stage` placeholder.
+- `You cannot publish over the previously published versions` means that version is already released. Bump the version to publish again.
+- Check the release:
+  ```bash
+  npm view figma-design-validator dist-tags
+  ```
+  ```bash
+  npx -y figma-design-validator --version
+  ```
+- The npm page shows the README from the release, so README changes appear there only after the next publish.
 
 ## License
 
