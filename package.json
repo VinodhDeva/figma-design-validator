@@ -1,6 +1,6 @@
 {
-  "name": "ui-validation-mcp",
-  "version": "0.3.0",
+  "name": "figma-design-validator",
+  "version": "0.4.0",
   "description": "Deterministic UI-vs-Figma validation MCP server (layout, screenshots, accessibility) over STDIO",
   "keywords": [
     "mcp",
@@ -25,7 +25,7 @@
   },
   "type": "module",
   "bin": {
-    "ui-validation-mcp": "dist/index.js"
+    "figma-design-validator": "dist/index.js"
   },
   "main": "dist/index.js",
   "files": [
@@ -45,7 +45,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test \"test/unit/*.test.ts\"",
     "test:integration": "npm run build && node --test \"test/integration/*.test.ts\"",
-    "test:all": "npm run build && node --test \"test/**/*.test.ts\""
+    "test:all": "npm run build && node --test \"test/**/*.test.ts\"",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

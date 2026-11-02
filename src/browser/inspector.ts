@@ -1,6 +1,8 @@
+import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { promisify } from 'node:util';
 import { mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { chromium, type Browser, type Page } from 'playwright';
 import { MemoryCache, hashKey } from '../cache.ts';
 import { normalizeColor } from '../compare/color.ts';
@@ -10,12 +12,34 @@ const require = createRequire(import.meta.url);
 
 let browser: Promise<Browser> | undefined;
 
+const execFileAsync = promisify(execFile);
+
+/**
+ * Playwright's Chromium, else an installed Chrome/Edge. On a first run via npx none may exist:
+ * install Playwright's Chromium once (to its normal cache), then retry.
+ */
+async function launch(): Promise<Browser> {
+  try {
+    return await chromium.launch({ headless: true });
+  } catch {}
+  for (const channel of ['chrome', 'msedge']) {
+    try {
+      return await chromium.launch({ headless: true, channel });
+    } catch {}
+  }
+  console.error('figma-design-validator: no browser found, installing Chromium (first run only)...');
+  const cli = join(dirname(require.resolve('playwright/package.json')), 'cli.js');
+  // Output is captured, never written to stdout: stdout carries the MCP protocol.
+  await execFileAsync(process.execPath, [cli, 'install', 'chromium'], { timeout: 10 * 60_000 });
+  return chromium.launch({ headless: true });
+}
+
 /** One headless browser per server process, launched lazily. */
 function getBrowser() {
-  browser ??= chromium.launch({ headless: true }).catch((e) => {
+  browser ??= launch().catch((e) => {
     browser = undefined;
     throw new Error(
-      `Cannot launch Chromium (${(e as Error).message.split('\n')[0]}). Run: npx playwright install chromium`,
+      `Cannot launch a browser (${(e as Error).message.split('\n')[0]}). Run: npx playwright install chromium`,
     );
   });
   return browser;

@@ -11,7 +11,7 @@ import type { Finding, StyleProps, ValidationConfig, Viewport } from './types.ts
 import { draftConfig } from './draft.ts';
 import { runValidation, screenshotComponent, summarize } from './validate.ts';
 
-export const VERSION = '0.3.0';
+export const VERSION = '0.4.0';
 
 const INSTRUCTIONS = `Deterministic UI-vs-design validation. All comparisons run in this server; results are compact JSON.
 Prefer one call to validate_layout or generate_report (mode "quick" by default) over chaining inspect_* calls.
@@ -56,7 +56,7 @@ const pick = (p: StyleProps, only?: string[]) =>
   only?.length ? Object.fromEntries(Object.entries(p).filter(([k]) => only.includes(k))) : p;
 
 export function createServer() {
-  const server = new McpServer({ name: 'ui-validation-mcp', version: VERSION }, { instructions: INSTRUCTIONS });
+  const server = new McpServer({ name: 'figma-design-validator', version: VERSION }, { instructions: INSTRUCTIONS });
   const readOnly = { readOnlyHint: true, openWorldHint: false };
 
   server.registerTool(

@@ -2,8 +2,11 @@
   "mcpServers": {
     "ui-validation": {
       "type": "stdio",
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/figma-design-validator/dist/index.js"],
+      "command": "npx",
+      "args": [
+        "-y",
+        "figma-design-validator"
+      ],
       "env": {
         "UI_VALIDATION_CONFIG": "./ui-validation.config.json",
         "FIGMA_TOKEN": "${FIGMA_TOKEN}"

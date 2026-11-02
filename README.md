@@ -1,6 +1,6 @@
 # figma-design-validator
 
-`ui-validation-mcp`: an MCP server that validates a React UI against its Figma design.
+An MCP server that validates a React UI against its Figma design. Run it with `npx -y figma-design-validator`; no clone needed.
 
 A small MCP server that checks a running React app against its Figma design. It reports layout, typography, color, screenshot and accessibility mismatches.
 
@@ -39,7 +39,22 @@ Each engine (design, browser, comparison, report) is a separate module and can b
 
 ## Install
 
-Requires Node ≥ 22.18. Tests run TypeScript natively; the built `dist/` is plain JS.
+Nothing to clone or build. MCP clients start the server with `npx`, which downloads and caches it. Requires Node ≥ 22.18.
+
+| Source | `args` for `npx` | Status |
+|---|---|---|
+| npm | `["-y", "figma-design-validator"]` | After the package is published to npm |
+| GitHub | `["-y", "github:VinodhDeva/figma-design-validator"]` | Works now. The first start compiles TypeScript, so it is slower |
+
+The server runs on your machine, because Playwright must reach your `localhost` app.
+
+**Browser.** On first use the server looks for Playwright's Chromium, then Google Chrome, then Microsoft Edge. If none is found, it installs Playwright's Chromium once (about 150 MB, into Playwright's normal cache) and retries. To install it ahead of time:
+
+```bash
+npx playwright install chromium
+```
+
+### Local development
 
 ```bash
 git clone https://github.com/VinodhDeva/figma-design-validator.git
@@ -53,13 +68,7 @@ cd figma-design-validator
 npm install
 ```
 
-```bash
-npx playwright install chromium
-```
-
-```bash
-npm run build
-```
+`npm install` also builds `dist/` through the `prepare` script. Point a client at `node /ABSOLUTE/PATH/TO/figma-design-validator/dist/index.js` to run your local copy.
 
 ## Configure
 
@@ -141,18 +150,20 @@ Option A, project-scoped `.mcp.json` in your app root (see [examples/clients/cla
   "mcpServers": {
     "ui-validation": {
       "type": "stdio",
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/figma-design-validator/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "figma-design-validator"],
       "env": { "UI_VALIDATION_CONFIG": "./ui-validation.config.json", "FIGMA_TOKEN": "${FIGMA_TOKEN}" }
     }
   }
 }
 ```
 
+Before the npm release, use `"args": ["-y", "github:VinodhDeva/figma-design-validator"]`.
+
 Option B, the CLI:
 
 ```bash
-claude mcp add ui-validation -s project -e UI_VALIDATION_CONFIG=./ui-validation.config.json -- node /ABSOLUTE/PATH/TO/figma-design-validator/dist/index.js
+claude mcp add ui-validation -s project -e UI_VALIDATION_CONFIG=./ui-validation.config.json -- npx -y figma-design-validator
 ```
 
 Check it:
@@ -169,8 +180,8 @@ Both read the same file: `.kiro/settings/mcp.json` in the workspace, or `~/.kiro
 {
   "mcpServers": {
     "ui-validation": {
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/figma-design-validator/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "figma-design-validator"],
       "env": { "UI_VALIDATION_CONFIG": "./ui-validation.config.json" },
       "disabled": false,
       "autoApprove": ["inspect_design", "inspect_ui", "validate_layout", "compare_screenshots"]
@@ -184,10 +195,12 @@ Set `FIGMA_TOKEN` in the shell that launches KIRO, or add it to `env` with its r
 Or use the CLI:
 
 ```bash
-kiro-cli mcp add --name ui-validation --scope workspace --command node --args /ABSOLUTE/PATH/TO/figma-design-validator/dist/index.js
+kiro-cli mcp add --name ui-validation --scope workspace --command npx --args '["-y", "figma-design-validator"]'
 ```
 
 In KIRO IDE, open the MCP Servers panel and confirm that `ui-validation` lists 6 tools.
+
+The first start downloads the package, so it can take up to a minute. If a client times out on that first start, run `npx -y figma-design-validator --version` once in a terminal to fill the cache, then restart the client.
 
 ## Usage prompts
 
@@ -234,6 +247,18 @@ npm run test:integration
 - `line-height: normal` is approximated as 1.2 × font-size.
 - Figma `x`/`y` are only meaningful with `frameNodeId` set and a frame matching the viewport. Add them to `ignore` otherwise.
 - Pages must be reachable without login. Pages that need auth are not supported yet.
+
+## Publishing (maintainers)
+
+`npm publish` builds `dist/` through `prepare`. Only `dist`, `docs`, `examples`, `README.md`, `LICENSE` and `CHANGELOG.md` are published.
+
+```bash
+npm login
+```
+
+```bash
+npm publish
+```
 
 ## License
 

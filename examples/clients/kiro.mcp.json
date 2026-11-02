@@ -1,13 +1,21 @@
 {
   "mcpServers": {
     "ui-validation": {
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/figma-design-validator/dist/index.js"],
+      "command": "npx",
+      "args": [
+        "-y",
+        "figma-design-validator"
+      ],
       "env": {
         "UI_VALIDATION_CONFIG": "./ui-validation.config.json"
       },
       "disabled": false,
-      "autoApprove": ["inspect_design", "inspect_ui", "validate_layout", "compare_screenshots"]
+      "autoApprove": [
+        "inspect_design",
+        "inspect_ui",
+        "validate_layout",
+        "compare_screenshots"
+      ]
     }
   }
 }

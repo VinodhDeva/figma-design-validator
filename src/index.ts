@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { closeBrowser } from './browser/inspector.ts';
-import { createServer } from './server.ts';
+import { VERSION, createServer } from './server.ts';
+
+// Lets users warm the npx cache (or check the install) without starting a stdio session.
+if (process.argv.includes('--version')) {
+  console.log(VERSION);
+  process.exit(0);
+}
 
 // stdout carries the MCP protocol; diagnostics go to stderr only.
 const server = createServer();
 await server.connect(new StdioServerTransport());
-console.error('ui-validation-mcp ready (stdio)');
+console.error('figma-design-validator ready (stdio)');
 
 const shutdown = async () => {
   await closeBrowser();
