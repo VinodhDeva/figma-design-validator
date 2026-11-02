@@ -22,7 +22,7 @@
   (Figma ▸ spec file   (Playwright, axe-core)        │
    ▸ inline expected)          │                     ▼
           │                    │              report/report.ts
-          └──── cache.ts ──────┘              JSON + Markdown
+          └──── cache.ts ──────┘       HTML + JSON + Markdown
 ```
 
 For each viewport, `runValidation` in `src/validate.ts` does the following:
@@ -49,7 +49,8 @@ For each viewport, `runValidation` in `src/validate.ts` does the following:
 | `src/compare/layout.ts` | Property rules | color |
 | `src/compare/color.ts` | Color parse, hex normalize, channel distance | — |
 | `src/compare/screenshot.ts` | pixelmatch diff, diff bounding box | pixelmatch, pngjs |
-| `src/report/report.ts` | Sorting, JSON and Markdown output, file writing | — |
+| `src/report/report.ts` | Sorting, JSON and Markdown output, file writing | html |
+| `src/report/html.ts` | Self-contained HTML summary report | — |
 
 The engines do not import each other, except comparison importing color. Each one can be used on its own.
 
@@ -62,11 +63,13 @@ Both sides map to the same `StyleProps` shape (`src/types.ts`). Numbers are CSS 
 | `width`, `height` | `absoluteBoundingBox` | `getBoundingClientRect()` |
 | `x`, `y` | box minus `frameNodeId` box | rect plus scroll offset |
 | `padding*` | `padding*` | computed padding |
-| `gap` | `itemSpacing` | `row-gap`/`column-gap` along the flex axis; `row-gap` for grid |
+| `gap` | `itemSpacing` of a HORIZONTAL/VERTICAL auto-layout frame | flex only: `column-gap` for row direction, `row-gap` for column direction |
+| `rowGap`, `columnGap` | GRID: `gridRowGap`/`gridColumnGap`; wrapped HORIZONTAL: `counterAxisSpacing` → `rowGap` | flex and grid containers: `row-gap`, `column-gap` |
 | `borderRadius` | `cornerRadius` / `rectangleCornerRadii[0]` | `border-top-left-radius` |
-| `borderWidth`, `borderColor` | `strokeWeight`, first solid stroke | top border |
+| `borderWidth`, `borderColor` | widest of `individualStrokeWeights` (else `strokeWeight`), first solid stroke | widest visible side (style not `none`/`hidden`) and its color |
 | `backgroundColor` | first visible solid fill (non-text node) | `background-color` |
-| `color` and typography | first visible TEXT descendant: fills, `style.*` | computed `color`, `font-*`, `line-height`, `letter-spacing`, `text-align` |
+| `color` and typography | first visible TEXT descendant: fills, `style.*` | computed `color`, `font-*`, `line-height`, `letter-spacing` |
+| `textAlign` | TEXT nodes only | `text-align`, omitted on flex/grid containers (children are placed by `justify-content`) |
 | `opacity` | `opacity` | `opacity` |
 
 ## Caching
@@ -85,5 +88,7 @@ Pass `refresh: true` to any tool to skip the caches.
 - **Mismatches only.** Passing checks are just counted. This keeps responses small. In tests, a 58-check run returned 159 characters.
 - **One browser per process.** Chromium launches on first use. Each inspection gets a fresh context with `deviceScaleFactor: 1`, so pixel sizes are stable.
 - **Deterministic captures.** Animations, transitions and the text caret are disabled before screenshots.
+- **Transparent references.** Figma exports unfilled frames as transparent PNGs. Before diffing, both images are composited onto the first opaque background at or behind the element on the live page (white if none).
+- **Human-readable output.** The model gets compact JSON; people get `report.html`, written whenever `validate_layout` finds issues and on every `generate_report`.
 - **Graceful degradation.** A missing Figma token, a network failure or a missing node becomes a `warnings` entry, and the next design source is used.
 - **Nested a11y deduplication.** axe runs on the innermost component first. A failing node is reported once, on the most specific component.

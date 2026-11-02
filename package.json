@@ -1,6 +1,6 @@
 {
   "name": "ui-validation-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Deterministic UI-vs-Figma validation MCP server (layout, screenshots, accessibility) over STDIO",
   "keywords": [
     "mcp",

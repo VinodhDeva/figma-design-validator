@@ -76,8 +76,13 @@ function extract(selectors: string[]): (RawProps | null)[] {
     const fontSize = px(s.fontSize) ?? 16;
     const flex = s.display.includes('flex');
     const grid = s.display.includes('grid');
-    const gap = flex ? px(s.flexDirection.startsWith('column') ? s.rowGap : s.columnGap) : grid ? px(s.rowGap) : undefined;
-    const bw = px(s.borderTopWidth) ?? 0;
+    // `gap` = main-axis spacing of a flex container (Figma itemSpacing). Grid has no main axis: use rowGap/columnGap.
+    const gap = flex ? px(s.flexDirection.startsWith('column') ? s.rowGap : s.columnGap) : undefined;
+    // Use the widest visible side, not just the top (e.g. bottom-border-only inputs).
+    const sides = (['Top', 'Right', 'Bottom', 'Left'] as const)
+      .map((k) => ({ w: px(s.getPropertyValue(`border-${k.toLowerCase()}-width`)) ?? 0, c: s.getPropertyValue(`border-${k.toLowerCase()}-color`), st: s.getPropertyValue(`border-${k.toLowerCase()}-style`) }))
+      .filter((b) => b.w > 0 && b.st !== 'none' && b.st !== 'hidden');
+    const border = sides.sort((a, b) => b.w - a.w)[0];
     const out: Record<string, string | number | undefined> = {
       width: r.width,
       height: r.height,
@@ -88,9 +93,11 @@ function extract(selectors: string[]): (RawProps | null)[] {
       paddingBottom: px(s.paddingBottom),
       paddingLeft: px(s.paddingLeft),
       gap,
+      rowGap: flex || grid ? px(s.rowGap) : undefined,
+      columnGap: flex || grid ? px(s.columnGap) : undefined,
       borderRadius: px(s.borderTopLeftRadius),
-      borderWidth: bw,
-      borderColor: bw > 0 ? s.borderTopColor : undefined,
+      borderWidth: border?.w ?? 0,
+      borderColor: border?.c,
       color: s.color,
       backgroundColor: s.backgroundColor,
       fontFamily: s.fontFamily,
@@ -99,7 +106,8 @@ function extract(selectors: string[]): (RawProps | null)[] {
       // "normal" line-height is font dependent; 1.2 is the common UA approximation.
       lineHeight: s.lineHeight === 'normal' ? fontSize * 1.2 : px(s.lineHeight),
       letterSpacing: s.letterSpacing === 'normal' ? 0 : px(s.letterSpacing),
-      textAlign: s.textAlign,
+      // text-align does not position flex/grid children (justify-content does), so it is meaningless there.
+      textAlign: flex || grid ? undefined : s.textAlign,
       opacity: Number(s.opacity),
     };
     for (const k of Object.keys(out)) if (out[k] === undefined) delete out[k];
@@ -192,25 +200,35 @@ async function runAxe(page: Page, targets: Target[]): Promise<A11yViolation[]> {
   return out.sort((a, b) => targets.findIndex((t) => t.name === a.component) - targets.findIndex((t) => t.name === b.component));
 }
 
-/** Screenshot one element (or the full page when selector is omitted) to `outPath`. */
+/**
+ * Screenshot one element (or the full page when selector is omitted) to `outPath`.
+ * Also returns the first opaque background at or behind the element, used to flatten transparent references.
+ */
 export async function captureScreenshot(opts: {
   url: string;
   viewport: Viewport;
   outPath: string;
   selector?: string;
   waitFor?: string;
-}): Promise<string> {
+}): Promise<{ path: string; background: string }> {
   await mkdir(dirname(opts.outPath), { recursive: true });
-  await withPage(
+  return withPage(
     opts.url,
     opts.viewport,
     async (page) => {
       // Freeze animations/caret so captures are deterministic.
       await page.addStyleTag({ content: '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}' });
+      const background = await page.evaluate((sel) => {
+        for (let e = sel ? document.querySelector(sel) : document.body; e; e = e.parentElement) {
+          const c = getComputedStyle(e).backgroundColor;
+          if (c && c !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(c)) return c;
+        }
+        return '#ffffff';
+      }, opts.selector ?? null);
       if (opts.selector) await page.locator(opts.selector).first().screenshot({ path: opts.outPath });
       else await page.screenshot({ path: opts.outPath, fullPage: true });
+      return { path: opts.outPath, background: normalizeColor(background) };
     },
     opts.waitFor,
   );
-  return opts.outPath;
 }

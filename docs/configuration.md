@@ -36,9 +36,9 @@ Unknown keys inside `components`, `expected` and `responsive` are rejected, so t
 
 ## Properties
 
-`width height x y paddingTop paddingRight paddingBottom paddingLeft gap borderRadius borderWidth borderColor color backgroundColor fontFamily fontSize fontWeight lineHeight letterSpacing textAlign opacity`
+`width height x y paddingTop paddingRight paddingBottom paddingLeft gap rowGap columnGap borderRadius borderWidth borderColor color backgroundColor fontFamily fontSize fontWeight lineHeight letterSpacing textAlign opacity`
 
-Default `quickProperties`: `width height paddingTop paddingRight paddingBottom paddingLeft gap color backgroundColor fontSize fontWeight lineHeight borderRadius`.
+Default `quickProperties`: `width height paddingTop paddingRight paddingBottom paddingLeft gap rowGap columnGap color backgroundColor fontSize fontWeight lineHeight borderRadius`.
 
 ## Design sources
 
@@ -64,7 +64,7 @@ The response's `designSource` field says which source was used: `figma`, `figma-
 |---|---|---|
 | `size` | 2 | width, height (px) |
 | `position` | 4 | x, y (px) |
-| `spacing` | 1 | padding, gap, borderWidth (px) |
+| `spacing` | 1 | padding, gap, rowGap, columnGap, borderWidth (px) |
 | `radius` | 1 | borderRadius (px) |
 | `fontSize` | 0 | px |
 | `lineHeight` | 1 | px |
@@ -84,7 +84,9 @@ The response's `designSource` field says which source was used: `figma`, `figma-
 
 Other rules:
 
-- `fontFamily` compares the first family, case-insensitive, without quotes. `textAlign` treats `start` as `left` and `end` as `right`. Both must match exactly; a mismatch is FAIL / medium.
+- `fontFamily` compares the first family, case-insensitive, without quotes. `textAlign` treats `start` as `left` and `end` as `right`. Both must match exactly; a mismatch is FAIL / medium. `textAlign` is not read from flex/grid containers or from Figma frames, only from text elements.
+- `gap` is the main-axis spacing of a flex container. For grids, and for the cross axis of wrapped rows, use `rowGap`/`columnGap`.
+- `borderWidth`/`borderColor` come from the widest visible side, so bottom-border-only inputs are measured correctly.
 - A prop the design has but the browser lacks is FAIL / medium.
 - A missing element is FAIL / high (`property: "element"`).
 - axe `critical` and `serious` are FAIL / high, `moderate` is WARNING / medium, `minor` is WARNING / low.

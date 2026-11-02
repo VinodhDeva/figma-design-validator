@@ -23,6 +23,7 @@ src/
   compare/color.ts      color parsing / distance
   compare/screenshot.ts pixelmatch diff + diff bounding box
   report/report.ts      JSON + Markdown reports
+  report/html.ts        HTML summary report
 ```
 
 Each engine (design, browser, comparison, report) is a separate module and can be used on its own.
@@ -89,9 +90,9 @@ Full reference: [docs/configuration.md](docs/configuration.md). Full example: [e
 |---|---|---|
 | `inspect_design` | Expected props and 2-level child hierarchy per component | `configPath?`, `components?`, `viewport?`, `refresh?` |
 | `inspect_ui` | Box and computed CSS for the requested selectors only. Optional axe-core scan | config `components`, **or** ad hoc `url` + `selectors`; `viewport`, `properties?`, `accessibility?` |
-| `validate_layout` | Design vs live page in one call. Returns mismatches only | `mode`, `components?`, `viewports?`; **or** direct `expected` + `actual` (no browser) |
-| `compare_screenshots` | pixelmatch diff. Returns ratio + diff bounding box. The diff PNG is written to disk, not returned | two PNG paths, **or** config `component` (live capture vs `reference` or Figma export); `threshold`, `maxDiffRatio`, `viewport` |
-| `generate_report` | Runs validation (or formats `findings` you pass). Writes `report.json` + `report.md` | `mode`, `format: json\|markdown`, `name?` |
+| `validate_layout` | Design vs live page in one call. Returns mismatches only. On issues, also writes `report.html` and returns its path | `mode`, `components?`, `viewports?`; **or** direct `expected` + `actual` (no browser) |
+| `compare_screenshots` | pixelmatch diff. Returns ratio + diff bounding box. The diff PNG is written to disk, not returned. Transparent references are flattened onto the page background | two PNG paths, **or** config `component` (live capture vs `reference` or Figma export); `threshold`, `maxDiffRatio`, `viewport` |
+| `generate_report` | Runs validation (or formats `findings` you pass). Writes `report.html`, `report.json`, `report.md` | `mode`, `format: json\|markdown`, `name?` |
 
 `configPath` defaults to `$UI_VALIDATION_CONFIG`, then `./ui-validation.config.json`.
 
@@ -187,6 +188,7 @@ Real output from the fixture app is in [examples/reports](examples/reports):
 
 - [sample-quick.json](examples/reports/sample-quick.json)
 - [sample-deep.md](examples/reports/sample-deep.md)
+- [sample-deep.html](examples/reports/sample-deep.html): open in a browser
 
 Excerpt:
 

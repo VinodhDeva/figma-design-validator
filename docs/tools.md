@@ -45,7 +45,7 @@ Compares design props with the live page in one call. Returns mismatches only.
 | `components`, `viewports` | string[] | Default: all components; quick = first viewport, deep = all |
 | `expected` + `actual` (+ `component`) | props | Direct mode: pure comparison, no browser, default tolerances (or the config's when `configPath` is given) |
 
-Config mode never runs screenshot diffs; use `compare_screenshots` or `generate_report` for those. Deep mode adds axe-core.
+When the result is not PASS, config mode also writes `report.html`, `report.json` and `report.md` to `outputDir`, and the response gains a `report` field with the HTML path. Config mode never runs screenshot diffs; use `compare_screenshots` or `generate_report` for those. Deep mode adds axe-core.
 
 ```json
 {"status":"FAIL","summary":{"status":"FAIL","checked":23,"failed":1,"warnings":0},"mode":"quick","designSource":"spec-file","viewports":["desktop"],"findings":[{"component":"PrimaryButton","property":"fontSize","viewport":"desktop","expected":16,"actual":14,"status":"FAIL","severity":"medium"}]}
@@ -63,6 +63,9 @@ Pixel diff with pixelmatch on the overlapping area. Pixels outside the overlap c
 | `threshold` | 0–1 | Per-pixel sensitivity (default 0.1) |
 | `maxDiffRatio` | 0–1 | Allowed share of differing pixels (default 0.01) |
 | `diffOutput` | path | File mode only. Live mode writes to `outputDir/screenshots/` |
+| `background` | color | File mode only: color behind transparent pixels (default `#ffffff`). Live mode reads the page background behind the element |
+
+Transparent pixels in either image (for example a Figma export of a frame with no fill) are composited onto that background before diffing.
 
 Illustrative values:
 
@@ -74,7 +77,9 @@ Illustrative values:
 
 ## generate_report
 
-Runs the full pipeline, including screenshots in deep mode. Or it formats `findings` you pass in. It always writes `<name>.json` and `<name>.md` to `outputDir`.
+Runs the full pipeline, including screenshots in deep mode. Or it formats `findings` you pass in. It always writes `<name>.html`, `<name>.json` and `<name>.md` to `outputDir`.
+
+`<name>.html` is a self-contained page for people: overall status, counts, issues grouped by component (worst severity first), every finding with color swatches and numeric deltas, screenshot diffs with the captured and diff images, and notes. It supports light and dark mode and needs no network.
 
 | Input | Type | Notes |
 |---|---|---|

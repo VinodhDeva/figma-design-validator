@@ -9,7 +9,9 @@ export interface StyleProps {
   paddingRight?: number;
   paddingBottom?: number;
   paddingLeft?: number;
-  gap?: number;
+  gap?: number; // main-axis spacing of a flex/auto-layout container
+  rowGap?: number;
+  columnGap?: number;
   borderRadius?: number;
   borderWidth?: number;
   borderColor?: string;

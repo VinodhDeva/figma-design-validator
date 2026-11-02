@@ -10,7 +10,7 @@ import { toJson, toMarkdown, writeReports } from './report/report.ts';
 import type { Finding, StyleProps, ValidationConfig, Viewport } from './types.ts';
 import { runValidation, screenshotComponent, summarize } from './validate.ts';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 
 const INSTRUCTIONS = `Deterministic UI-vs-design validation. All comparisons run in this server; results are compact JSON.
 Prefer one call to validate_layout or generate_report (mode "quick" by default) over chaining inspect_* calls.
@@ -119,7 +119,7 @@ export function createServer() {
   server.registerTool(
     'validate_layout',
     {
-      description: 'Deterministic comparison of expected vs actual layout (dimensions, spacing, alignment, typography, colors). Either pass expected+actual props directly, or let it resolve both from config (design + live page) in one call. Returns only mismatches.',
+      description: 'Deterministic comparison of expected vs actual layout (dimensions, spacing, alignment, typography, colors). Either pass expected+actual props directly, or let it resolve both from config (design + live page) in one call. Returns only mismatches. When issues are found it also writes report.html/json/md and returns the HTML path.',
       inputSchema: {
         configPath,
         components,
@@ -141,8 +141,9 @@ export function createServer() {
       }
       const config = await getConfig(a.configPath);
       const run = await runValidation(config, { ...a, screenshots: false });
-      const { screenshots: _s, ...rest } = run;
-      return toJson(rest);
+      // Issues found: also write the HTML/JSON/Markdown report so a human gets a readable summary.
+      const report = run.summary.status === 'PASS' ? undefined : (await writeReports(run, config.outputDir)).html;
+      return { ...toJson(run), ...(report && { report }) };
     }),
   );
 
@@ -159,6 +160,7 @@ export function createServer() {
         threshold: z.number().min(0).max(1).optional().describe('Per-pixel sensitivity 0-1 (default 0.1)'),
         maxDiffRatio: z.number().min(0).max(1).optional().describe('Allowed differing pixel share (default 0.01)'),
         diffOutput: z.string().optional().describe('Where to write the diff PNG'),
+        background: z.string().optional().describe('File mode: color behind transparent pixels (default #ffffff). Live mode reads it from the page'),
         refresh,
       },
       annotations: { ...readOnly, openWorldHint: true },
@@ -171,6 +173,7 @@ export function createServer() {
           threshold: a.threshold ?? 0.1,
           maxDiffRatio: a.maxDiffRatio ?? 0.01,
           diffOutput: a.diffOutput && resolve(a.diffOutput),
+          background: a.background,
         });
       }
       if (!a.component) throw new Error('Pass reference+actual paths, or a config component');
@@ -200,7 +203,7 @@ export function createServer() {
   server.registerTool(
     'generate_report',
     {
-      description: 'PASS/FAIL/WARNING report with component, property, expected, actual, severity. Runs the full validation (or formats findings you pass) and writes report.json + report.md to the output dir.',
+      description: 'PASS/FAIL/WARNING report with component, property, expected, actual, severity. Runs the full validation (or formats findings you pass) and writes report.html (readable summary), report.json and report.md to the output dir.',
       inputSchema: {
         configPath,
         components,
@@ -223,11 +226,10 @@ export function createServer() {
       } else {
         const config = await getConfig(a.configPath);
         outputDir = config.outputDir;
-        const { screenshots: _s, ...run } = await runValidation(config, a);
-        input = run;
+        input = await runValidation(config, a);
       }
       const files = await writeReports(input, outputDir, a.name);
-      return a.format === 'markdown' ? `${toMarkdown(input)}\nFiles: ${files.json}, ${files.markdown}` : { ...toJson(input), files };
+      return a.format === 'markdown' ? `${toMarkdown(input)}\nFiles: ${files.html}, ${files.json}, ${files.markdown}` : { ...toJson(input), files };
     }),
   );
 

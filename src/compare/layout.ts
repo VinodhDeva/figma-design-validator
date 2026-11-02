@@ -5,7 +5,7 @@ type Kind = 'size' | 'position' | 'spacing' | 'radius' | 'fontSize' | 'lineHeigh
 
 const KIND: Record<PropName, Kind> = {
   width: 'size', height: 'size', x: 'position', y: 'position',
-  paddingTop: 'spacing', paddingRight: 'spacing', paddingBottom: 'spacing', paddingLeft: 'spacing', gap: 'spacing',
+  paddingTop: 'spacing', paddingRight: 'spacing', paddingBottom: 'spacing', paddingLeft: 'spacing', gap: 'spacing', rowGap: 'spacing', columnGap: 'spacing',
   borderRadius: 'radius', borderWidth: 'spacing', borderColor: 'color', color: 'color', backgroundColor: 'color',
   fontFamily: 'text', fontSize: 'fontSize', fontWeight: 'fontWeight', lineHeight: 'lineHeight',
   letterSpacing: 'letterSpacing', textAlign: 'text', opacity: 'opacity',

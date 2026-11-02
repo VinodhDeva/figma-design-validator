@@ -9,7 +9,7 @@ const styleProps = z
   .object({
     width: z.number(), height: z.number(), x: z.number(), y: z.number(),
     paddingTop: z.number(), paddingRight: z.number(), paddingBottom: z.number(), paddingLeft: z.number(),
-    gap: z.number(), borderRadius: z.number(), borderWidth: z.number(), borderColor: z.string(),
+    gap: z.number(), rowGap: z.number(), columnGap: z.number(), borderRadius: z.number(), borderWidth: z.number(), borderColor: z.string(),
     color: z.string(), backgroundColor: z.string(), fontFamily: z.string(), fontSize: z.number(),
     fontWeight: z.number(), lineHeight: z.number(), letterSpacing: z.number(), textAlign: z.string(),
     opacity: z.number(),
@@ -71,7 +71,7 @@ export const DEFAULT_TOLERANCES = {
 };
 
 export const DEFAULT_QUICK_PROPERTIES = [
-  'width', 'height', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'gap',
+  'width', 'height', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'gap', 'rowGap', 'columnGap',
   'color', 'backgroundColor', 'fontSize', 'fontWeight', 'lineHeight', 'borderRadius',
 ] as const;
 

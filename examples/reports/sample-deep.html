@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UI Validation Report</title>
+<style>
+:root{--bg:#f7f7f8;--card:#fff;--ink:#1d1d22;--muted:#61616b;--line:#e3e3e8;--fail:#c4314b;--warn:#a86400;--pass:#1f7a4d;--failbg:#fdecef;--warnbg:#fff4e0;--passbg:#e7f6ee}
+@media (prefers-color-scheme:dark){:root{--bg:#141418;--card:#1d1d23;--ink:#ececf1;--muted:#a3a3ae;--line:#33333c;--fail:#ff7a90;--warn:#f0b357;--pass:#5fd39a;--failbg:#3a1820;--warnbg:#3a2a10;--passbg:#123124}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 48px}h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:32px 0 12px}
+.meta{color:var(--muted);font-size:13px}.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:600;font-size:12px}
+.FAIL{color:var(--fail);background:var(--failbg)}.WARNING{color:var(--warn);background:var(--warnbg)}.PASS{color:var(--pass);background:var(--passbg)}
+.banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0;padding:16px;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.banner .pill{font-size:16px;padding:4px 14px}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}.kpi b{display:block;font-size:24px}.kpi span{color:var(--muted);font-size:12px}
+.wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600}tr:last-child td{border-bottom:0}
+code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}.sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--line);margin-right:6px;vertical-align:-1px}
+.sev-high{color:var(--fail);font-weight:600}.sev-medium{color:var(--warn);font-weight:600}.sev-low{color:var(--muted)}
+details{margin-bottom:12px}summary{cursor:pointer;font-weight:600;padding:8px 0}
+.shots{display:grid;gap:16px}.shot{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.imgs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:8px}.imgs img{max-width:100%;border:1px solid var(--line);border-radius:6px;background:repeating-conic-gradient(#ccc 0 25%,#fff 0 50%) 0 0/12px 12px}
+ul{margin:0;padding-left:20px}.muted{color:var(--muted)}
+</style></head><body><main>
+<h1>UI Validation Report</h1>
+<div class="meta">Generated 2026-11-02T11:56:36.678Z · mode deep · design source spec-file · viewports desktop, mobile</div>
+<div class="banner"><span class="pill FAIL">FAIL</span><span>4 failures and 0 warnings across 2 components.</span></div>
+<div class="kpis">
+<div class="kpi"><b>46</b><span>checks run</span></div>
+<div class="kpi"><b style="color:var(--fail)">4</b><span>failures</span></div>
+<div class="kpi"><b style="color:var(--warn)">0</b><span>warnings</span></div>
+<div class="kpi"><b>2</b><span>components with issues</span></div>
+</div>
+<h2>Issues by component</h2><div class="wrap"><table><thead><tr><th>Component</th><th>Worst</th><th>Fail</th><th>Warn</th><th>Properties</th></tr></thead><tbody>
+<tr><td><a href="#c-Hint">Hint</a></td><td class="sev-high">high</td><td>2</td><td>0</td><td><code>a11y:color-contrast</code></td></tr>
+<tr><td><a href="#c-PrimaryButton">PrimaryButton</a></td><td class="sev-medium">medium</td><td>2</td><td>0</td><td><code>fontSize</code></td></tr>
+</tbody></table></div>
+<h2>Findings</h2>
+<details open id="c-Hint"><summary>Hint <span class="muted">(2)</span></summary><div class="wrap"><table>
+<thead><tr><th>Status</th><th>Severity</th><th>Viewport</th><th>Property</th><th>Expected</th><th>Actual</th><th>Δ</th></tr></thead><tbody>
+<tr><td><span class="pill FAIL">FAIL</span></td><td class="sev-high">high</td><td>desktop</td><td><code>a11y:color-contrast</code></td><td><code>no violation</code></td><td><code>1 node(s): Elements must meet minimum color contrast ratio thresholds</code></td><td><code></code></td></tr>
+<tr><td><span class="pill FAIL">FAIL</span></td><td class="sev-high">high</td><td>mobile</td><td><code>a11y:color-contrast</code></td><td><code>no violation</code></td><td><code>1 node(s): Elements must meet minimum color contrast ratio thresholds</code></td><td><code></code></td></tr>
+</tbody></table></div></details>
+<details open id="c-PrimaryButton"><summary>PrimaryButton <span class="muted">(2)</span></summary><div class="wrap"><table>
+<thead><tr><th>Status</th><th>Severity</th><th>Viewport</th><th>Property</th><th>Expected</th><th>Actual</th><th>Δ</th></tr></thead><tbody>
+<tr><td><span class="pill FAIL">FAIL</span></td><td class="sev-medium">medium</td><td>desktop</td><td><code>fontSize</code></td><td><code>16</code></td><td><code>14</code></td><td><code>-2</code></td></tr>
+<tr><td><span class="pill FAIL">FAIL</span></td><td class="sev-medium">medium</td><td>mobile</td><td><code>fontSize</code></td><td><code>16</code></td><td><code>14</code></td><td><code>-2</code></td></tr>
+</tbody></table></div></details>
+
+
+</main></body></html>

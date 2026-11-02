@@ -1,7 +1,7 @@
 {
   "id": "1:2", "name": "Primary Button", "type": "FRAME",
   "absoluteBoundingBox": { "x": 116, "y": 200, "width": 120, "height": 40 },
-  "paddingTop": 8, "paddingRight": 16, "paddingBottom": 8, "paddingLeft": 16, "itemSpacing": 4,
+  "paddingTop": 8, "paddingRight": 16, "paddingBottom": 8, "paddingLeft": 16, "layoutMode": "HORIZONTAL", "itemSpacing": 4,
   "cornerRadius": 8,
   "fills": [{ "type": "SOLID", "color": { "r": 0.1451, "g": 0.3882, "b": 0.9216, "a": 1 } }],
   "children": [

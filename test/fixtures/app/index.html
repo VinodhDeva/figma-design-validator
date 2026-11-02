@@ -11,6 +11,8 @@
   .btn { width: 120px; height: 40px; padding: 8px 16px; border: 0; border-radius: 8px;
          background: #2563eb; color: #ffffff; font-size: 14px; font-weight: 500; line-height: 20px; }
   .low-contrast { color: #cccccc; background: #ffffff; font-size: 12px; }
+  .underline { border: 0; border-bottom: 2px solid #6558d3; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; row-gap: 4px; column-gap: 12px; }
   @media (max-width: 480px) { .card { width: 100%; margin: 0; } }
 </style>
 </head>
@@ -20,5 +22,7 @@
     <p class="low-contrast" data-testid="hint">Faint hint text</p>
     <button class="btn" data-testid="primary-btn">Continue</button>
   </div>
+  <input class="underline" data-testid="underline" aria-label="Search">
+  <div class="grid" data-testid="grid"><span>a</span><span>b</span></div>
 </body>
 </html>

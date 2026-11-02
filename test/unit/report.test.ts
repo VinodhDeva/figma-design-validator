@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { toJson, toMarkdown } from '../../src/report/report.ts';
+import { toHtml } from '../../src/report/html.ts';
 import { summarize } from '../../src/validate.ts';
 import type { Finding } from '../../src/types.ts';
 
@@ -21,4 +22,20 @@ test('json sorts FAIL first; markdown has a table row per finding', () => {
   const md = toMarkdown(input);
   assert.match(md, /\*\*Status:\*\* FAIL/);
   assert.equal(md.split('\n').filter((l) => l.startsWith('| FAIL') || l.startsWith('| WARNING')).length, 2);
+});
+
+test('html report has status, rollup, swatches and escapes input', () => {
+  const html = toHtml(
+    {
+      summary: summarize(findings, 5),
+      findings: [...findings, { component: '<script>x</script>', property: 'color', expected: '#2563eb', actual: '#dc2626', status: 'FAIL', severity: 'high' }],
+    },
+    '/out',
+  );
+  assert.match(html, /class="pill FAIL">FAIL</);
+  assert.match(html, /Issues by component/);
+  assert.match(html, /class="sw" style="background:#2563eb"/);
+  assert.ok(!html.includes('<script>x'));
+  assert.match(html, /&lt;script&gt;x/);
+  assert.match(html, /<code>-2<\/code>/, 'numeric delta');
 });

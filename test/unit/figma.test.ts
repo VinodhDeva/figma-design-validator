@@ -14,7 +14,7 @@ test('extracts normalized props from a Figma node', () => {
     width: 120, height: 40, x: 16, y: 100,
     paddingTop: 8, paddingRight: 16, paddingBottom: 8, paddingLeft: 16, gap: 4, borderRadius: 8,
     backgroundColor: '#2563eb',
-    fontFamily: 'Inter', fontSize: 14, fontWeight: 500, lineHeight: 20, letterSpacing: 0, textAlign: 'center', color: '#ffffff',
+    fontFamily: 'Inter', fontSize: 14, fontWeight: 500, lineHeight: 20, letterSpacing: 0, color: '#ffffff',
   });
   assert.deepEqual(hierarchy(node as FigmaNode), ['Label']);
 });
@@ -51,4 +51,23 @@ test('uses a saved Figma /nodes response as spec file', async () => {
   const r = await new FigmaAdapter(config).inspect(config.components);
   assert.equal(r.specs[0].props.backgroundColor, '#2563eb');
   assert.deepEqual(r.specs[0].children, ['Label']);
+});
+
+test('gap follows auto-layout axis; grid gives row/column gaps; text align only on text nodes', () => {
+  const base = { id: '1', name: 'n', type: 'FRAME' };
+  assert.deepEqual(extractProps({ ...base, itemSpacing: 8 }), {}, 'no auto layout -> no gap');
+  assert.deepEqual(extractProps({ ...base, layoutMode: 'VERTICAL', itemSpacing: 8 }), { gap: 8 });
+  assert.deepEqual(extractProps({ ...base, layoutMode: 'HORIZONTAL', layoutWrap: 'WRAP', itemSpacing: 8, counterAxisSpacing: 16 }), { gap: 8, rowGap: 16 });
+  assert.deepEqual(extractProps({ ...base, layoutMode: 'GRID', gridRowGap: 4, gridColumnGap: 12, itemSpacing: 99 }), { rowGap: 4, columnGap: 12 });
+  const text = { id: '2', name: 't', type: 'TEXT', style: { textAlignHorizontal: 'RIGHT' } };
+  assert.equal(extractProps(text).textAlign, 'right');
+});
+
+test('border width uses the widest individual stroke', () => {
+  const p = extractProps({
+    id: '1', name: 'n', type: 'FRAME', strokeWeight: 1,
+    individualStrokeWeights: { top: 0, right: 0, bottom: 2, left: 0 },
+    strokes: [{ type: 'SOLID', color: { r: 1, g: 0, b: 0, a: 1 } }],
+  });
+  assert.deepEqual(p, { borderColor: '#ff0000', borderWidth: 2 });
 });

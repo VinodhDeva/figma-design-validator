@@ -1,6 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { ScreenshotDiff } from '../compare/screenshot.ts';
 import type { Finding, Summary } from '../types.ts';
+import { toHtml } from './html.ts';
 
 export interface ReportInput {
   summary: Summary;
@@ -9,6 +11,8 @@ export interface ReportInput {
   designSource?: string;
   viewports?: string[];
   warnings?: string[];
+  // HTML report only; kept out of JSON responses to save tokens.
+  screenshots?: (ScreenshotDiff & { component: string; viewport: string })[];
 }
 
 const SEV_ORDER = { high: 0, medium: 1, low: 2 } as const;
@@ -54,6 +58,11 @@ export async function writeReports(r: ReportInput, outputDir: string, name = 're
   await mkdir(outputDir, { recursive: true });
   const json = join(outputDir, `${name}.json`);
   const md = join(outputDir, `${name}.md`);
-  await Promise.all([writeFile(json, JSON.stringify(toJson(r), null, 2)), writeFile(md, toMarkdown(r))]);
-  return { json, markdown: md };
+  const html = join(outputDir, `${name}.html`);
+  await Promise.all([
+    writeFile(json, JSON.stringify(toJson(r), null, 2)),
+    writeFile(md, toMarkdown(r)),
+    writeFile(html, toHtml(r, outputDir)),
+  ]);
+  return { html, json, markdown: md };
 }

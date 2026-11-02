@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { PNG } from 'pngjs';
 import { captureScreenshot, closeBrowser } from '../../src/browser/inspector.ts';
 
 const root = new URL('../..', import.meta.url).pathname;
@@ -33,6 +34,11 @@ before(async () => {
   await copyFile(join(root, 'test/fixtures/design-spec.json'), join(dir, 'design-spec.json'));
   // Reference = current implementation, so the pixel diff must PASS.
   await captureScreenshot({ url: baseUrl, viewport: { name: 'desktop', width: 1440, height: 900 }, selector: '[data-testid=primary-btn]', outPath: join(dir, 'btn.png') });
+  // Same capture with background pixels made transparent, like a Figma export of an unfilled frame.
+  await captureScreenshot({ url: baseUrl, viewport: { name: 'desktop', width: 1440, height: 900 }, selector: '[data-testid=card]', outPath: join(dir, 'card.png') });
+  const card = PNG.sync.read(await readFile(join(dir, 'card.png')));
+  for (let i = 0; i < card.data.length; i += 4) if (card.data[i] === 255 && card.data[i + 1] === 255 && card.data[i + 2] === 255) card.data[i + 3] = 0;
+  await writeFile(join(dir, 'card.png'), PNG.sync.write(card));
   await closeBrowser();
   configPath = join(dir, 'ui-validation.config.json');
   await writeFile(
@@ -42,7 +48,7 @@ before(async () => {
       viewports: [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 375, height: 812 }],
       designSpecPath: 'design-spec.json',
       components: [
-        { name: 'Card', selector: '[data-testid=card]', responsive: { mobile: { expected: { width: 375 } } } },
+        { name: 'Card', selector: '[data-testid=card]', reference: 'card.png', responsive: { mobile: { expected: { width: 375 } } } },
         { name: 'Title', selector: '[data-testid=title]' },
         { name: 'Hint', selector: '[data-testid=hint]', expected: { fontSize: 12 } },
         { name: 'PrimaryButton', selector: '[data-testid=primary-btn]', reference: 'btn.png' },
@@ -83,9 +89,24 @@ test('inspect_ui ad hoc url + selectors', async () => {
   assert.equal(r.pages[0].components[0].props.fontSize, 20);
 });
 
-test('validate_layout quick finds the seeded mismatches only', async () => {
+test('inspect_ui reads the visible border side, grid gaps, and skips text-align on flex', async () => {
+  const cfg = JSON.parse(await readFile(configPath, 'utf8'));
+  const r = await call('inspect_ui', {
+    url: cfg.baseUrl,
+    selectors: { input: '[data-testid=underline]', grid: '[data-testid=grid]', card: '[data-testid=card]', title: '[data-testid=title]' },
+    properties: ['borderWidth', 'borderColor', 'gap', 'rowGap', 'columnGap', 'textAlign'],
+  });
+  const [input, grid, card, title] = r.pages[0].components.map((c: { props: object }) => c.props);
+  assert.deepEqual(input, { borderWidth: 2, borderColor: '#6558d3', textAlign: 'start' });
+  assert.deepEqual(grid, { rowGap: 4, columnGap: 12, borderWidth: 0 });
+  assert.equal(card.textAlign, undefined, 'flex container');
+  assert.equal(title.textAlign, 'start');
+});
+
+test('validate_layout quick finds the seeded mismatches only, and writes an HTML report', async () => {
   const r = await call('validate_layout', { configPath });
   assert.equal(r.status, 'FAIL');
+  assert.match(await readFile(r.report, 'utf8'), /PrimaryButton/);
   assert.deepEqual(r.viewports, ['desktop']);
   const keys = r.findings.map((f: { component: string; property: string }) => `${f.component}.${f.property}`).sort();
   assert.deepEqual(keys, ['Missing.element', 'PrimaryButton.fontSize']);
@@ -111,9 +132,15 @@ test('compare_screenshots: live capture vs reference passes', async () => {
   assert.equal(r.diffRatio, 0);
 });
 
-test('generate_report writes JSON + Markdown', async () => {
+test('compare_screenshots: transparent reference is flattened onto the page background', async () => {
+  const r = await call('compare_screenshots', { configPath, component: 'Card' });
+  assert.equal(r.status, 'PASS', JSON.stringify(r));
+});
+
+test('generate_report writes HTML + JSON + Markdown', async () => {
   const md = await call('generate_report', { configPath, components: ['PrimaryButton'], format: 'markdown' });
   assert.match(md, /\| FAIL \| medium \| PrimaryButton \| desktop \| fontSize \| 16 \| 14 \|/);
+  assert.match(await readFile(join(dir, 'ui-validation-reports/report.html'), 'utf8'), /class="pill FAIL"/);
   const json = JSON.parse(await readFile(join(dir, 'ui-validation-reports/report.json'), 'utf8'));
   assert.equal(json.status, 'FAIL');
   assert.ok((await stat(join(dir, 'ui-validation-reports/report.md'))).size > 0);

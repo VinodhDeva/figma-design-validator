@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0 — 2026-11-02
+
+### Fixed
+
+- Screenshot diffs against transparent references (Figma exports of frames with no fill) reported 76–93 % different pixels. Both images are now composited onto the page background behind the element before diffing.
+- `gap` was read as the row gap for grids. `gap` is now flex main-axis spacing only; new `rowGap` and `columnGap` props cover grids and wrapped rows. The Figma side maps `itemSpacing`, `counterAxisSpacing` and grid gaps by `layoutMode`.
+- `borderColor`/`borderWidth` were read from the top border only. They now come from the widest visible side, and from `individualStrokeWeights` in Figma.
+- `textAlign` was checked on flex/grid containers and Figma frames, where it does not position content. It is now read from text elements only.
+
+### Added
+
+- `report.html`: a self-contained, readable summary report. `generate_report` always writes it; `validate_layout` writes it whenever it finds issues and returns its path.
+- `compare_screenshots` file mode takes a `background` color.
+
 ## 0.1.0 — 2026-11-01
 
 First release.

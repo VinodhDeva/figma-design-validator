@@ -131,6 +131,6 @@ export async function screenshotComponent(
   const reference = c.reference ?? (c.figmaNodeId ? await figma.exportImage(c.figmaNodeId, 1, refresh).catch(() => undefined) : undefined);
   if (!reference) return undefined;
   const stem = join(config.outputDir, 'screenshots', `${safe(c.name)}.${safe(vp.name)}`);
-  const actual = await captureScreenshot({ url: urlFor(config, c), viewport: vp, selector: c.selector, outPath: `${stem}.actual.png` });
-  return compareImages({ reference, actual, ...config.screenshot, diffOutput: `${stem}.diff.png` });
+  const { path: actual, background } = await captureScreenshot({ url: urlFor(config, c), viewport: vp, selector: c.selector, outPath: `${stem}.actual.png` });
+  return { ...(await compareImages({ reference, actual, background, ...config.screenshot, diffOutput: `${stem}.diff.png` })), actualImage: actual };
 }

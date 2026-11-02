@@ -17,7 +17,13 @@ export interface FigmaNode {
   paddingRight?: number;
   paddingBottom?: number;
   paddingLeft?: number;
+  layoutMode?: 'NONE' | 'HORIZONTAL' | 'VERTICAL' | 'GRID';
+  layoutWrap?: 'NO_WRAP' | 'WRAP';
   itemSpacing?: number;
+  counterAxisSpacing?: number;
+  gridRowGap?: number;
+  gridColumnGap?: number;
+  individualStrokeWeights?: { top: number; right: number; bottom: number; left: number };
   cornerRadius?: number;
   rectangleCornerRadii?: number[];
   strokeWeight?: number;
@@ -78,13 +84,22 @@ export function extractProps(n: FigmaNode, frame?: FigmaNode): StyleProps {
   if (n.paddingRight !== undefined) p.paddingRight = n.paddingRight;
   if (n.paddingBottom !== undefined) p.paddingBottom = n.paddingBottom;
   if (n.paddingLeft !== undefined) p.paddingLeft = n.paddingLeft;
-  if (n.itemSpacing !== undefined) p.gap = n.itemSpacing;
+  // itemSpacing is main-axis spacing (= CSS flex gap); wrapped rows add counter-axis spacing; grids have both gaps.
+  if (n.layoutMode === 'GRID') {
+    if (n.gridRowGap !== undefined) p.rowGap = n.gridRowGap;
+    if (n.gridColumnGap !== undefined) p.columnGap = n.gridColumnGap;
+  } else if (n.layoutMode && n.layoutMode !== 'NONE') {
+    if (n.itemSpacing !== undefined) p.gap = n.itemSpacing;
+    if (n.layoutMode === 'HORIZONTAL' && n.layoutWrap === 'WRAP' && n.counterAxisSpacing !== undefined) p.rowGap = n.counterAxisSpacing;
+  }
   if (n.cornerRadius !== undefined) p.borderRadius = n.cornerRadius;
   else if (n.rectangleCornerRadii) p.borderRadius = n.rectangleCornerRadii[0];
   const stroke = solid(n.strokes);
   if (stroke) {
     p.borderColor = stroke;
-    if (n.strokeWeight !== undefined) p.borderWidth = n.strokeWeight;
+    const w = n.individualStrokeWeights;
+    if (w) p.borderWidth = Math.max(w.top, w.right, w.bottom, w.left);
+    else if (n.strokeWeight !== undefined) p.borderWidth = n.strokeWeight;
   }
   if (n.opacity !== undefined && n.opacity !== 1) p.opacity = n.opacity;
   if (n.type !== 'TEXT') {
@@ -99,7 +114,8 @@ export function extractProps(n: FigmaNode, frame?: FigmaNode): StyleProps {
     if (s.fontWeight !== undefined) p.fontWeight = s.fontWeight;
     if (s.lineHeightPx !== undefined) p.lineHeight = Math.round(s.lineHeightPx * 100) / 100;
     if (s.letterSpacing !== undefined) p.letterSpacing = s.letterSpacing;
-    if (s.textAlignHorizontal) p.textAlign = ALIGN[s.textAlignHorizontal] ?? s.textAlignHorizontal.toLowerCase();
+    // Only a text node's own alignment maps to CSS text-align; in a frame, child placement is a layout concern.
+    if (s.textAlignHorizontal && n.type === 'TEXT') p.textAlign = ALIGN[s.textAlignHorizontal] ?? s.textAlignHorizontal.toLowerCase();
     const c = solid(t.fills);
     if (c) p.color = c;
   }

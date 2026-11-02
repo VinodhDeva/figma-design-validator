@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
+import { parseColor } from './color.ts';
 
 export interface ScreenshotDiff {
   status: 'PASS' | 'FAIL' | 'WARNING';
@@ -12,6 +13,20 @@ export interface ScreenshotDiff {
   // Bounding box of differing pixels, so the model only needs to look at this region if at all.
   diffBox?: { x: number; y: number; width: number; height: number };
   diffImage?: string;
+  actualImage?: string;
+}
+
+/** Alpha-composite onto an opaque background in place (Figma exports unfilled frames as transparent PNGs). */
+export function flatten(png: PNG, [br, bg, bb]: [number, number, number]) {
+  const d = png.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const a = d[i + 3] / 255;
+    if (a === 1) continue;
+    d[i] = Math.round(d[i] * a + br * (1 - a));
+    d[i + 1] = Math.round(d[i + 1] * a + bg * (1 - a));
+    d[i + 2] = Math.round(d[i + 2] * a + bb * (1 - a));
+    d[i + 3] = 255;
+  }
 }
 
 function crop(png: PNG, w: number, h: number): Buffer {
@@ -31,9 +46,14 @@ export async function compareImages(opts: {
   threshold: number;
   maxDiffRatio: number;
   diffOutput?: string;
+  // Page background behind the element; transparent pixels are composited onto it. Default white.
+  background?: string;
 }): Promise<ScreenshotDiff> {
   const load = async (x: string | Buffer) => PNG.sync.read(typeof x === 'string' ? await readFile(x) : x);
   const [ref, act] = await Promise.all([load(opts.reference), load(opts.actual)]);
+  const bg = parseColor(opts.background ?? '#ffffff') ?? [255, 255, 255, 1];
+  flatten(ref, [bg[0], bg[1], bg[2]]);
+  flatten(act, [bg[0], bg[1], bg[2]]);
   const w = Math.min(ref.width, act.width);
   const h = Math.min(ref.height, act.height);
   const diff = new PNG({ width: w, height: h });
