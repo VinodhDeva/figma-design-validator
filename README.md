@@ -6,6 +6,8 @@ A small MCP server that checks a running React app against its Figma design. Run
 
 All comparisons run in TypeScript with fixed rules. The server never calls an LLM and has no AI API dependency. It returns compact JSON with **mismatches only**, so the AI client spends few tokens. It speaks standard MCP over STDIO, so it works with Claude Code, KIRO CLI, KIRO IDE and any other MCP client.
 
+**New in 0.5.0:** optional [code mode](#code-mode-optional). Add `--codemode` and the model filters large results in a sandbox instead of reading them, using up to 98% fewer tokens on bulk work. Without the flag, nothing changes. See the [changelog](CHANGELOG.md#050--2026-11-04).
+
 The server is **read-only toward your app**. It never edits source code. It writes only to its cache and report folders. Any fix must be proposed to the user and approved before code changes. The server's MCP `instructions` tell the client this.
 
 ## Architecture
@@ -13,7 +15,7 @@ The server is **read-only toward your app**. It never edits source code. It writ
 ```
 src/
   index.ts              STDIO entry (stdout = protocol, stderr = logs)
-  server.ts             5 tool definitions + zod input schemas
+  server.ts             6 tool definitions + zod input schemas
   config.ts             JSON config schema, defaults, responsive overrides
   validate.ts           pipeline: design -> browser -> rules (+ screenshots, axe)
   draft.ts              draft_config: write a reviewable draft config
@@ -26,6 +28,7 @@ src/
   compare/screenshot.ts pixelmatch diff + diff bounding box
   report/report.ts      JSON + Markdown reports
   report/html.ts        HTML summary report
+  codemode/             optional code mode (--codemode): MCP client, Deno sandbox, bridge, wrapper generator
 ```
 
 Each engine (design, browser, comparison, report) is a separate module and can be used on its own.
@@ -141,6 +144,7 @@ A missing element is FAIL / high. Details: [docs/configuration.md#rules](docs/co
 - Figma responses are cached on disk. Inspections are memoized for 30 s, so repeat calls reuse page loads.
 - Screenshots are taken in deep mode or on request only. Images stay on disk; the response holds numbers and a diff box.
 - Use `validate_layout` or `generate_report` as one call, rather than chaining `inspect_*` calls.
+- For bulk work (hundreds of elements, many screenshots), turn on [code mode](#code-mode-optional) so the model filters results in a sandbox instead of reading them.
 
 ## Claude Code setup
 
@@ -173,6 +177,8 @@ Check it:
 claude mcp get ui-validation
 ```
 
+For [code mode](#code-mode-optional), use `"args": ["-y", "figma-design-validator", "--codemode"]`.
+
 ## KIRO CLI / KIRO IDE setup
 
 Both read the same file: `.kiro/settings/mcp.json` in the workspace, or `~/.kiro/settings/mcp.json` for every project. See [examples/clients/kiro.mcp.json](examples/clients/kiro.mcp.json):
@@ -199,7 +205,7 @@ Or use the CLI:
 kiro-cli mcp add --name ui-validation --scope workspace --command npx --args '["-y", "figma-design-validator"]'
 ```
 
-In KIRO IDE, open the MCP Servers panel and confirm that `ui-validation` lists 6 tools.
+In KIRO IDE, open the MCP Servers panel and confirm that `ui-validation` lists 6 tools. In [code mode](#code-mode-optional) (`"args": ["-y", "figma-design-validator", "--codemode"]`) it lists 4: `search_tools`, `execute_code`, `generate_report` and `draft_config`.
 
 The first start downloads the package, so it can take up to a minute. If a client times out on that first start, run `npx -y figma-design-validator --version` once in a terminal to fill the cache, then restart the client.
 
@@ -251,9 +257,69 @@ npm run test:integration
 
 ## Code mode (optional)
 
-Add `--codemode` to the server's args: `["-y", "figma-design-validator", "--codemode"]`. The model then writes TypeScript that calls these tools inside a sandbox, and only what the code returns enters its context. Without the flag, nothing changes.
+Code mode is new in 0.5.0. Turn it on by adding `--codemode` to the server's args:
 
-It helps with bulky results, such as hundreds of `inspect_ui` rows. It doesn't help with the everyday `validate_layout` check. The sandbox runs on Deno, which is installed once, on first use (about 80 MB). Details, security model and benchmark: [docs/codemode.md](docs/codemode.md).
+```json
+"args": ["-y", "figma-design-validator", "--codemode"]
+```
+
+Without the flag, the server behaves exactly as in 0.4.0.
+
+### How it works
+
+In regular mode, the model calls each tool, and every full result enters its context. In code mode, the model writes TypeScript that calls the same tools inside a sandbox, and only what the code returns enters its context:
+
+```
+regular:    model → inspect_ui(1000 selectors) → ~70 KB result → model context
+code mode:  model → execute_code(code) → sandbox → same tool → ~70 KB stays in the sandbox
+                                                   code filters it → ~300 bytes → model context
+```
+
+Example of model-written code:
+
+```ts
+const selectors = Object.fromEntries(
+  Array.from({ length: 1000 }, (_, i) => ["item" + i, "li:nth-child(" + (i + 1) + ")"]),
+);
+const r = await tools.inspectUi({ url: "http://localhost:5173/list", selectors, properties: ["height"] });
+const rows = r.pages[0].components;
+return { rows: rows.length, wrong: rows.filter((c) => c.props.height !== 40).map((c) => c.name) };
+```
+
+Code mode doesn't reimplement anything. It starts the regular server as a separate process and forwards every call to it, so results are identical.
+
+| | Regular mode | Code mode |
+|---|---|---|
+| Tools the model sees | 6 validator tools | `search_tools`, `execute_code`, plus `generate_report` and `draft_config` passed through |
+| Tool definitions in context | about 2,600 tokens | about 1,100 tokens |
+| Large results | enter the model's context in full | stay in the sandbox; only the code's return value comes back |
+| Extra install | none | Deno, about 80 MB, downloaded once on first use |
+
+### How it reduces tokens
+
+1. **Large results stay out of context.** The code filters the tool output and returns only what matters. This is the main saving.
+2. **Smaller tool definitions.** 4 short tools instead of 6 full schemas; the model looks up details with `search_tools` only when needed.
+3. **Many calls in one step.** A loop over many tool calls runs inside one `execute_code`, and only the summary comes back.
+
+| Workflow | Regular | Code mode |
+|---|---|---|
+| 1,000 list rows, find wrong heights | 20,278 tokens | 1,395 (−93%) |
+| 8 screenshot diffs, list failures | 3,280 | 1,302 (−60%) |
+| Deep validation, worst issue per component | 2,871 | 1,542 (−46%, all from smaller definitions) |
+
+### When to use it
+
+- **Use it** for bulk work: hundreds of `inspect_ui` rows, or many screenshot comparisons.
+- **Skip it** for everyday `validate_layout` checks. They already return only mismatches, so code mode adds code tokens and usually one extra model turn.
+
+### Safety
+
+The sandbox is a Deno process with no network, file, environment or process access. Each call from code is checked before it reaches the server:
+- input is validated against the tool's schema;
+- URLs are allowed only to localhost, and paths only inside the working directory;
+- tools with side effects need your approval.
+
+Full details, configuration and the full benchmark: [docs/codemode.md](docs/codemode.md).
 
 ## Publishing (maintainers)
 

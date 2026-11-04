@@ -139,6 +139,16 @@ For another server:
 npx figma-design-validator --codemode generate --out servers -- <command> <args...>
 ```
 
+## How it saves tokens
+
+| Saving | Regular mode | Code mode |
+|---|---|---|
+| Tool results | Every full result enters the model's context | Results stay in the sandbox; only the code's return value or printed output comes back (max 8 KB) |
+| Tool definitions | 6 full schemas, about 2,600 tokens | 4 short tools, about 1,100 tokens; details are loaded with `search_tools` only when needed |
+| Repeated calls | One model step per batch, and every result enters context | One `execute_code` loops over all calls and returns a summary |
+
+The first row is where most of the saving comes from. When a tool already returns a small result, as `validate_layout` does, code mode saves nothing on results: the code itself costs tokens.
+
 ## Benchmark
 
 `npm run bench:codemode` runs three workflows against the real validator, once with direct tool calls and once in code mode. There is no LLM in the loop: each workflow is a fixed plan, and the benchmark measures what that plan puts into context (characters ÷ 4), how many model turns it needs, and how long the tools take. Latest results: [bench/codemode-results.md](../bench/codemode-results.md).
