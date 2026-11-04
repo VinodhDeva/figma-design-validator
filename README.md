@@ -248,6 +248,10 @@ npm run test:integration
 - Figma `x`/`y` are only meaningful with `frameNodeId` set and a frame matching the viewport. Add them to `ignore` otherwise.
 - Pages must be reachable without login. Pages that need auth are not supported yet.
 
+## Code mode (optional)
+
+[`figma-design-validator-codemode`](codemode/README.md) is a separate, opt-in package. The model writes TypeScript that calls these tools inside a sandbox, and only what the code returns enters its context. It helps with bulky results, such as hundreds of `inspect_ui` rows, and doesn't help with the everyday `validate_layout` check. This package is unchanged by it.
+
 ## Publishing (maintainers)
 
 `npm publish` builds `dist/` through `prepare`. Only `dist`, `docs`, `examples`, `README.md`, `LICENSE` and `CHANGELOG.md` are published.
