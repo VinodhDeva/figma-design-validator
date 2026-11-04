@@ -9,16 +9,22 @@ if (process.argv.includes('--version')) {
   process.exit(0);
 }
 
-// stdout carries the MCP protocol; diagnostics go to stderr only.
-const server = createServer();
-await server.connect(new StdioServerTransport());
-console.error('figma-design-validator ready (stdio)');
+// Opt-in code mode: a separate MCP server that adopts this one. Without the flag nothing changes.
+if (process.argv.includes('--codemode')) {
+  const { runCodemode } = await import('./codemode/cli.ts');
+  await runCodemode(process.argv.slice(2));
+} else {
+  // stdout carries the MCP protocol; diagnostics go to stderr only.
+  const server = createServer();
+  await server.connect(new StdioServerTransport());
+  console.error('figma-design-validator ready (stdio)');
 
-const shutdown = async () => {
-  await closeBrowser();
-  await server.close();
-  process.exit(0);
-};
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
-process.stdin.on('close', shutdown);
+  const shutdown = async () => {
+    await closeBrowser();
+    await server.close();
+    process.exit(0);
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+  process.stdin.on('close', shutdown);
+}

@@ -1,9 +1,13 @@
-import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { execFile, spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 
 export interface Limits {
   timeoutMs: number;
@@ -32,18 +36,37 @@ export interface RunResult {
   ms: number;
 }
 
-let denoPath: string | undefined;
-function deno(): string {
-  if (denoPath) return denoPath;
-  const env = process.env.CODEMODE_DENO;
-  if (env) return (denoPath = env);
-  try {
-    // The `deno` npm package ships the binary; runInstall() returns its path (installing it on first use).
-    const api = createRequire(import.meta.url)('deno/install_api.cjs') as { runInstall(): string };
-    return (denoPath = api.runInstall());
-  } catch {
-    return (denoPath = 'deno');
-  }
+export const DENO_VERSION = '2.9.6';
+
+let denoPath: Promise<string> | undefined;
+
+/**
+ * Deno is not a package dependency (~80 MB). On first code-mode use the pinned `deno` npm package is installed
+ * into ~/.cache/figma-design-validator/deno-<version>; later runs reuse it. CODEMODE_DENO overrides the binary.
+ */
+export function deno(): Promise<string> {
+  denoPath ??= (async () => {
+    if (process.env.CODEMODE_DENO) return process.env.CODEMODE_DENO;
+    const dir = join(homedir(), '.cache', 'figma-design-validator', `deno-${DENO_VERSION}`);
+    const api = join(dir, 'node_modules', 'deno', 'install_api.cjs');
+    if (!existsSync(api)) {
+      console.error(`figma-design-validator: installing Deno ${DENO_VERSION} for code mode (first use only)...`);
+      // Install next to the target, then rename: parallel first runs cannot leave a half-written install.
+      const tmp = `${dir}.tmp-${process.pid}-${Date.now()}`;
+      await mkdir(tmp, { recursive: true });
+      const win = process.platform === 'win32';
+      // Output is captured, never written to stdout: stdout carries the MCP protocol.
+      await execFileAsync(win ? 'npm.cmd' : 'npm', ['install', `deno@${DENO_VERSION}`, '--prefix', tmp, '--no-save', '--no-audit', '--no-fund', '--silent'], {
+        timeout: 10 * 60_000,
+        shell: win,
+      });
+      await rename(tmp, dir).catch(() => rm(tmp, { recursive: true, force: true }));
+    }
+    // The package ships the binary in a platform package; runInstall() places it and returns its path.
+    return (createRequire(import.meta.url)(api) as { runInstall(): string }).runInstall();
+  })();
+  denoPath.catch(() => (denoPath = undefined));
+  return denoPath;
 }
 
 // Inside the sandbox: stdout carries JSON messages to the host, stdin carries tool results back.
@@ -106,7 +129,7 @@ export async function runCode(code: string, tools: SandboxTool[], bridge: Bridge
   await writeFile(join(dir, 'code.ts'), `${HEADER}${code}\n}\n`);
 
   const child = spawn(
-    deno(),
+    await deno(),
     ['run', '--no-prompt', '--no-remote', '--no-npm', '--no-config', '--no-lock', '--quiet', `--v8-flags=--max-old-space-size=${limits.memoryMb}`, join(dir, 'main.ts')],
     // No inherited env: secrets like FIGMA_TOKEN never reach the sandbox process.
     { env: { NO_COLOR: '1', DENO_NO_UPDATE_CHECK: '1', DENO_DIR: join(tmpdir(), 'fdv-codemode-deno') }, stdio: ['pipe', 'pipe', 'pipe'] },

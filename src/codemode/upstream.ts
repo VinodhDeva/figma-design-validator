@@ -1,11 +1,9 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { VERSION } from '../server.ts';
 
 export type { Tool };
-
-/** The server code mode adopts. Its tools are the single source of truth. */
-export const DEFAULT_UPSTREAM = { command: 'npx', args: ['-y', 'figma-design-validator'] };
 
 export interface Upstream {
   name: string;
@@ -21,7 +19,7 @@ export interface CallResult {
 }
 
 export async function connectUpstream(command: string, args: string[]): Promise<Upstream> {
-  const client = new Client({ name: 'figma-design-validator-codemode', version: '0.1.0' });
+  const client = new Client({ name: 'figma-design-validator-codemode', version: VERSION });
   // Upstream inherits our env (it may need FIGMA_TOKEN); the sandbox never does.
   await client.connect(new StdioClientTransport({ command, args, stderr: 'inherit' }));
   const { tools } = await client.listTools();

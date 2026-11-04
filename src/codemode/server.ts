@@ -5,9 +5,8 @@ import { Ajv } from 'ajv';
 import { createBridge, isSideEffect, loadPolicy, type Confirm, type Policy } from './bridge.ts';
 import { camel, renderTool, signature } from './generate.ts';
 import { runCode, type SandboxTool } from './sandbox.ts';
+import { VERSION } from '../server.ts';
 import { connectUpstream, type Tool, type Upstream } from './upstream.ts';
-
-export const VERSION = '0.1.0';
 
 const text = (t: string, isError = false): CallToolResult => ({ content: [{ type: 'text', text: t }], ...(isError && { isError: true }) });
 

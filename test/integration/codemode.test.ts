@@ -1,4 +1,4 @@
-// End to end: codemode over stdio, adopting the real figma-design-validator build, against a fixture app.
+// End to end: `figma-design-validator --codemode` over stdio, adopting its own server, against a fixture app.
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
@@ -9,8 +9,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
-const pkg = new URL('..', import.meta.url).pathname;
-const repo = join(pkg, '..');
+const repo = new URL('../..', import.meta.url).pathname;
 let http: Server;
 let dir: string;
 let baseUrl: string;
@@ -23,7 +22,7 @@ export const listPage = () =>
 async function connect(elicit?: 'accept' | 'decline') {
   const c = new Client({ name: 'test', version: '0' }, elicit ? { capabilities: { elicitation: { form: {} } } } : {});
   if (elicit) c.setRequestHandler(ElicitRequestSchema, async () => (elicit === 'accept' ? { action: 'accept', content: { allow: true } } : { action: 'decline' }));
-  await c.connect(new StdioClientTransport({ command: process.execPath, args: [join(pkg, 'dist/index.js'), '--', process.execPath, join(repo, 'dist/index.js')], cwd: dir, stderr: 'ignore' }));
+  await c.connect(new StdioClientTransport({ command: process.execPath, args: [join(repo, 'dist/index.js'), '--codemode'], cwd: dir, stderr: 'ignore' }));
   clients.push(c);
   return c;
 }

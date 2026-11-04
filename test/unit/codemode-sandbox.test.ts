@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runCode, type Bridge, type SandboxTool } from '../src/sandbox.ts';
+import { runCode, type Bridge, type SandboxTool } from '../../src/codemode/sandbox.ts';
 
 const tools: SandboxTool[] = [{ fn: 'echo', name: 'echo', required: false }];
 const echo: Bridge = async (_name, input) => input;

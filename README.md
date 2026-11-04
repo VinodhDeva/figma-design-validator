@@ -35,6 +35,7 @@ Each engine (design, browser, comparison, report) is a separate module and can b
 - [docs/architecture.md](docs/architecture.md): modules, data flow, property model, caching, design decisions
 - [docs/configuration.md](docs/configuration.md): config keys, design sources, tolerances, rules, modes
 - [docs/tools.md](docs/tools.md): every tool's inputs and outputs, with examples
+- [docs/codemode.md](docs/codemode.md): optional code mode (`--codemode`)
 - [CHANGELOG.md](CHANGELOG.md)
 
 ## Install
@@ -250,7 +251,9 @@ npm run test:integration
 
 ## Code mode (optional)
 
-[`figma-design-validator-codemode`](codemode/README.md) is a separate, opt-in package. The model writes TypeScript that calls these tools inside a sandbox, and only what the code returns enters its context. It helps with bulky results, such as hundreds of `inspect_ui` rows, and doesn't help with the everyday `validate_layout` check. This package is unchanged by it.
+Add `--codemode` to the server's args: `["-y", "figma-design-validator", "--codemode"]`. The model then writes TypeScript that calls these tools inside a sandbox, and only what the code returns enters its context. Without the flag, nothing changes.
+
+It helps with bulky results, such as hundreds of `inspect_ui` rows. It doesn't help with the everyday `validate_layout` check. The sandbox runs on Deno, which is installed once, on first use (about 80 MB). Details, security model and benchmark: [docs/codemode.md](docs/codemode.md).
 
 ## Publishing (maintainers)
 

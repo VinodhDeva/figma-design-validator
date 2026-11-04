@@ -1,4 +1,4 @@
-// Benchmark: direct tool calling vs code mode on three workflows against the real figma-design-validator.
+// Benchmark (npm run bench:codemode): direct tool calling vs code mode on three workflows against the real figma-design-validator.
 // There is no LLM in the loop. Each workflow is a fixed plan a model would follow; we measure what that plan
 // puts into the model's context, how many model turns it needs, and how long the tools take.
 //   tokens  ~= characters / 4 of tool definitions + call arguments (incl. code) + results
@@ -11,8 +11,7 @@ import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
-const pkg = new URL('..', import.meta.url).pathname;
-const repo = join(pkg, '..');
+const repo = new URL('..', import.meta.url).pathname;
 const tok = (s: string) => Math.round(s.length / 4);
 
 const list = `<!doctype html><style>body{margin:0}li{height:40px}li.tall{height:60px}</style><ul>${Array.from({ length: 1000 }, (_, i) => `<li${i % 97 === 0 ? ' class="tall"' : ''}>Item ${i}</li>`).join('')}</ul>`;
@@ -58,7 +57,7 @@ async function connect(args: string[]) {
   return c;
 }
 const direct = await connect([join(repo, 'dist/index.js')]);
-const code = await connect([join(pkg, 'dist/index.js'), '--', process.execPath, join(repo, 'dist/index.js')]);
+const code = await connect([join(repo, 'dist/index.js'), '--codemode']);
 
 type Call = { name: string; arguments: Record<string, unknown> };
 /** Run a plan: steps run in order, calls within a step in parallel. */
@@ -143,7 +142,7 @@ const table = [
   ...rows,
 ].join('\n');
 console.log(table);
-await writeFile(join(pkg, 'bench/results.md'), `# Benchmark results\n\nNode ${process.version}, ${new Date().toISOString().slice(0, 10)}. Method: see bench/bench.ts header.\n\n${table}\n`);
+await writeFile(join(repo, 'bench/codemode-results.md'), `# Benchmark results\n\nNode ${process.version}, ${new Date().toISOString().slice(0, 10)}. Method: see bench/codemode.ts header.\n\n${table}\n`);
 
 await direct.close();
 await code.close();

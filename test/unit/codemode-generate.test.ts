@@ -4,11 +4,11 @@ import { execFileSync } from 'node:child_process';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { camel, renderAll, signature, syncFiles } from '../src/generate.ts';
-import { schemaToTs } from '../src/schema-to-ts.ts';
-import type { Tool } from '../src/upstream.ts';
+import { camel, renderAll, signature, syncFiles } from '../../src/codemode/generate.ts';
+import { schemaToTs } from '../../src/codemode/schema-to-ts.ts';
+import type { Tool } from '../../src/codemode/upstream.ts';
 
-const root = new URL('..', import.meta.url).pathname;
+const root = new URL('../..', import.meta.url).pathname;
 
 const tool: Tool = {
   name: 'compare_screenshots',

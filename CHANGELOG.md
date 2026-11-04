@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0 — 2026-11-04
+
+### Added
+
+- Optional code mode: `figma-design-validator --codemode`. The model writes TypeScript that calls the tools inside a sandbox, through two tools, `search_tools` and `execute_code`; only what the code returns enters its context. See [docs/codemode.md](docs/codemode.md).
+  - Adopts the regular server as an MCP client and forwards every call with `callTool`. No tool is reimplemented.
+  - Sandbox: a Deno subprocess with no permissions and an empty environment, with a timeout, heap limit, output cap and tool-call cap. Deno is installed on first use into `~/.cache/figma-design-validator`, not as a package dependency.
+  - Bridge: validates arguments against each tool's JSON Schema, applies allow/deny lists, limits URLs to localhost and paths to the working directory, and asks the user (MCP elicitation) before tools with side effects run from code.
+  - `--codemode generate [--check]` writes typed wrappers from the live tool list; CI fails if they are stale.
+  - Works with any MCP server: `--codemode -- <command> <args...>`.
+
+Without `--codemode`, behavior is unchanged.
+
 ## 0.4.0 — 2026-11-02
 
 First release on npm: https://www.npmjs.com/package/figma-design-validator

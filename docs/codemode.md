@@ -1,16 +1,18 @@
-# figma-design-validator-codemode
+# Code mode
 
-Optional "code mode" for [figma-design-validator](https://www.npmjs.com/package/figma-design-validator), or any MCP server. Instead of calling tools one by one, the model writes a short TypeScript program that calls them inside a sandbox. Only what the program prints or returns goes back into the model's context.
+Code mode is optional. Instead of calling tools one by one, the model writes a short TypeScript program that calls them inside a sandbox. Only what the program prints or returns goes back into the model's context.
 
-It **adopts** the existing server; it does not reimplement it. Code mode starts the server as an MCP client, reads its live `listTools()`, and forwards every call to it with `callTool`. The original package, its tools and its bin are unchanged; existing setups keep working.
+Turn it on with the `--codemode` flag. Without the flag the server behaves exactly as before.
+
+Code mode **adopts** the regular server; it doesn't reimplement it. With `--codemode`, the package starts its own regular server as a separate stdio process, connects to it as an MCP client, reads its live `listTools()`, and forwards every call with `callTool`.
 
 ## When to use it
 
-Use it when results are bulky and the model needs only a slice of them: hundreds of `inspect_ui` rows, or many screenshot diffs. For the everyday `validate_layout` check, the plain server is as good or better. See [Benchmark](#benchmark).
+Use it when results are bulky and the model needs only a slice of them: hundreds of `inspect_ui` rows, or many screenshot diffs. For the everyday `validate_layout` check, the regular mode is as good or better. See [Benchmark](#benchmark).
 
 ## Enable it
 
-Replace the server entry in your MCP client config. Claude Code (`.mcp.json`):
+Add `--codemode` to the server's `args`. Claude Code (`.mcp.json`):
 
 ```json
 {
@@ -18,7 +20,7 @@ Replace the server entry in your MCP client config. Claude Code (`.mcp.json`):
     "ui-validation": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "figma-design-validator-codemode"],
+      "args": ["-y", "figma-design-validator", "--codemode"],
       "env": { "FIGMA_TOKEN": "${FIGMA_TOKEN}" }
     }
   }
@@ -27,12 +29,20 @@ Replace the server entry in your MCP client config. Claude Code (`.mcp.json`):
 
 KIRO (`.kiro/settings/mcp.json`) takes the same `command` and `args`.
 
-Requires Node ≥ 22.18. The first install downloads the Deno runtime (about 80 MB) through the `deno` npm package.
+**Deno.** The sandbox runs on Deno, which isn't a package dependency, so regular users don't download it. On the first code-mode run, the pinned `deno` npm package (about 80 MB) is installed into `~/.cache/figma-design-validator/deno-<version>`, and later runs reuse it. This needs `npm` on the `PATH`. To use a Deno binary you already have, set `CODEMODE_DENO=/path/to/deno`.
 
-To adopt a different MCP server, put its command after `--`:
+To warm the cache before a client starts the server:
 
 ```bash
-npx -y figma-design-validator-codemode -- npx -y some-other-mcp-server
+npx -y figma-design-validator --codemode --help
+```
+
+That command only warms the package cache. Deno itself is installed on the first `execute_code` call.
+
+**Other servers.** To adopt a different MCP server, put its command after `--`:
+
+```bash
+npx -y figma-design-validator --codemode -- npx -y some-other-mcp-server
 ```
 
 ## Tools it exposes
@@ -93,7 +103,7 @@ figma-design-validator's `validate_layout` and `compare_screenshots` are annotat
 
 ## Configuration
 
-Pass a JSON file with `--config codemode.json`. All keys are optional:
+Pass a JSON file with `--codemode --config codemode.json`. All keys are optional:
 
 ```json
 {
@@ -109,29 +119,29 @@ Pass a JSON file with `--config codemode.json`. All keys are optional:
 
 ## Typed wrappers
 
-[`servers/figma-design-validator/`](servers/figma-design-validator) holds one generated wrapper per tool, with types from its JSON Schema and docs from its description. Each wrapper only forwards to `callTool`. `search_tools` serves the same text, generated from the live server at startup.
+[`servers/figma-design-validator/`](../servers/figma-design-validator) in the repository holds one generated wrapper per tool, with types from its JSON Schema and docs from its description. Each wrapper only forwards to `callTool`. `search_tools` serves the same text, generated from the live server at startup.
 
-Regenerate the wrappers after the server's tools change:
+Regenerate the wrappers after a tool changes:
 
 ```bash
-npm run generate
+npm run codemode:generate
 ```
 
 CI fails if the committed wrappers are stale:
 
 ```bash
-npm run check:wrappers
+npm run codemode:check
 ```
 
 For another server:
 
 ```bash
-npx figma-design-validator-codemode generate --out servers -- <command> <args...>
+npx figma-design-validator --codemode generate --out servers -- <command> <args...>
 ```
 
 ## Benchmark
 
-`npm run bench` runs three workflows against the real validator, once with direct tool calls and once in code mode. There is no LLM in the loop: each workflow is a fixed plan, and the benchmark measures what that plan puts into context (characters ÷ 4), how many model turns it needs, and how long the tools take. Latest results: [bench/results.md](bench/results.md).
+`npm run bench:codemode` runs three workflows against the real validator, once with direct tool calls and once in code mode. There is no LLM in the loop: each workflow is a fixed plan, and the benchmark measures what that plan puts into context (characters ÷ 4), how many model turns it needs, and how long the tools take. Latest results: [bench/codemode-results.md](../bench/codemode-results.md).
 
 | Workflow | Tokens direct | Tokens code mode | Excl. definitions: direct | Excl. definitions: code mode | Turns direct | Turns code mode | Tool ms direct | Tool ms code mode |
 |---|---|---|---|---|---|---|---|---|
@@ -147,7 +157,7 @@ How to read it:
 - **Turns:** code mode needs one extra turn when the model must discover the API with `search_tools`.
 - **Overhead:** about 20–35 ms per run to start Deno.
 
-Recommendation: publish as an opt-in, experimental package for bulk-inspection workflows. Keep the plain server as the default.
+Recommendation: keep code mode opt-in, for bulk-inspection workflows. Keep regular mode as the default.
 
 ## Limits
 

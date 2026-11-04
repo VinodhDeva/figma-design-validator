@@ -11,7 +11,7 @@ import type { Finding, StyleProps, ValidationConfig, Viewport } from './types.ts
 import { draftConfig } from './draft.ts';
 import { runValidation, screenshotComponent, summarize } from './validate.ts';
 
-export const VERSION = '0.4.0';
+export const VERSION = '0.5.0';
 
 const INSTRUCTIONS = `Deterministic UI-vs-design validation. All comparisons run in this server; results are compact JSON.
 Prefer one call to validate_layout or generate_report (mode "quick" by default) over chaining inspect_* calls.

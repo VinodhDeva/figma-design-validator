@@ -16,9 +16,4 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:all
-      - name: Code mode
-        working-directory: codemode
-        run: |
-          npm ci
-          npm run check:wrappers
-          npm test
+      - run: npm run codemode:check

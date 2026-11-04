@@ -1,6 +1,6 @@
 {
   "name": "figma-design-validator",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Deterministic UI-vs-Figma validation MCP server (layout, screenshots, accessibility) over STDIO",
   "keywords": [
     "mcp",
@@ -11,7 +11,9 @@
     "visual-regression",
     "accessibility",
     "claude-code",
-    "kiro"
+    "kiro",
+    "code-mode",
+    "sandbox"
   ],
   "author": "Vinodh M",
   "license": "MIT",
@@ -46,10 +48,14 @@
     "test": "node --test \"test/unit/*.test.ts\"",
     "test:integration": "npm run build && node --test \"test/integration/*.test.ts\"",
     "test:all": "npm run build && node --test \"test/**/*.test.ts\"",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "codemode:generate": "npm run build && node dist/index.js --codemode generate --out servers",
+    "codemode:check": "npm run build && node dist/index.js --codemode generate --check --out servers",
+    "bench:codemode": "npm run build && node bench/codemode.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
+    "ajv": "^8.20.0",
     "axe-core": "^4.14.0",
     "pixelmatch": "^8.0.0",
     "playwright": "^1.64.1",
