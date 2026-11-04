@@ -321,45 +321,6 @@ The sandbox is a Deno process with no network, file, environment or process acce
 
 Full details, configuration and the full benchmark: [docs/codemode.md](docs/codemode.md).
 
-## Publishing (maintainers)
-
-`npm publish` builds `dist/` through `prepare`. Only `dist`, `docs`, `examples`, `README.md`, `LICENSE` and `CHANGELOG.md` are published.
-
-To release a new version:
-
-1. Bump `version` in `package.json` and `VERSION` in `src/server.ts`, and add a `CHANGELOG.md` entry.
-2. Run the tests:
-   ```bash
-   npm run test:all
-   ```
-3. Check what will be published:
-   ```bash
-   npm publish --dry-run
-   ```
-4. Commit and push to `main`.
-5. Log in, in an interactive terminal:
-   ```bash
-   npm login
-   ```
-6. Publish, in an interactive terminal:
-   ```bash
-   npm publish --access public
-   ```
-
-Notes:
-
-- Run `npm login` and `npm publish` in a real terminal. Both stop at "Press ENTER to open in the browser", which a non-interactive shell (such as an editor's command field) cannot answer.
-- The account uses 2FA. `npm publish` first stages the release, then waits for approval at the `https://www.npmjs.com/auth/cli/...` link it prints. Until you approve, the registry shows only a `0.0.0-stage` placeholder.
-- `You cannot publish over the previously published versions` means that version is already released. Bump the version to publish again.
-- Check the release:
-  ```bash
-  npm view figma-design-validator dist-tags
-  ```
-  ```bash
-  npx -y figma-design-validator --version
-  ```
-- The npm page shows the README from the release, so README changes appear there only after the next publish.
-
 ## License
 
 MIT. See [LICENSE](LICENSE).
